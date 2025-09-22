@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext.next';
 import { ALL_DISTRICTS } from '@/data/bangladeshDistricts';
 import { userService } from '@/services/userService';
+import { getAuthToken } from '@/utils/auth';
 
 // Define types for admin dashboard
 export interface PendingUser {
@@ -98,11 +99,6 @@ interface ChatMessage {
   is_read: boolean;
 }
 
-interface DashboardStats {
-  title: string;
-  value: string | number;
-  change: string;
-}
 
 export function useAdminDashboard() {
   const { toast } = useToast();
@@ -111,14 +107,6 @@ export function useAdminDashboard() {
   // Local UI state for navigation
   const [activeTab, setActiveTab] = useState<string>('approvals');
 
-  // Stats
-  const [stats, setStats] = useState<DashboardStats[]>([
-    { title: 'Total Users', value: 1250, change: '+10%' },
-    { title: 'Monthly Revenue', value: '৳125,000', change: '+5%' },
-    { title: 'Active Sessions', value: 48, change: '+12%' },
-    { title: 'Platform Rating', value: 4.7, change: '+0.1' }
-  ]);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   // Approvals section state
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([
@@ -169,21 +157,6 @@ export function useAdminDashboard() {
   const [newMessage, setNewMessage] = useState("");
 
   // Load dashboard stats from API
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
-
-  const fetchDashboardStats = async () => {
-    try {
-      const response = await fetch('/api/dashboard/stats');
-      const data = await response.json();
-      if (data.success) {
-        setStats(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-    }
-  };
 
   // Approval functions
   const approveUser = (userId: string) => {
@@ -367,54 +340,6 @@ export function useAdminDashboard() {
     // which uses the real-time API endpoints
   };
 
-  // Real-time stats loading
-  const loadStats = async () => {
-    setIsLoadingStats(true);
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const response = await fetch('/api/admin-dashboard/stats', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setStats(data.data);
-      } else {
-        throw new Error('Failed to fetch stats');
-      }
-    } catch (error) {
-      console.error('Error loading dashboard stats:', error);
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to load dashboard statistics', 
-        variant: 'destructive' 
-      });
-    } finally {
-      setIsLoadingStats(false);
-    }
-  };
-
-  // Load stats on component mount and set up refresh interval
-  useEffect(() => {
-    loadStats();
-    
-    // Refresh stats every 30 seconds
-    const interval = setInterval(loadStats, 30000);
-    
-    return () => clearInterval(interval);
-  }, []);
 
   // Auth functions
   const handleLogout = async () => {
@@ -430,9 +355,6 @@ export function useAdminDashboard() {
     // State
     activeTab,
     setActiveTab,
-    stats,
-    isLoadingStats,
-    loadStats,
     // Approvals
     pendingUsers,
     accounts,

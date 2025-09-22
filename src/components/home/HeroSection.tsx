@@ -7,26 +7,34 @@ import { useState, useEffect, useRef, MouseEvent, TouchEvent } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeProvider";
-import { heroDataService, Division, TutorDistrict } from "@/services/heroDataService";
+import { heroDataService, Division, TutorDivision } from "@/services/heroDataService";
+
+// Custom hook for managing the animation sequence
+const useAnimationSequence = () => {
+  const [showFinal, setShowFinal] = useState(true);
+
+  return { showFinal };
+};
 import { BANGLADESH_DISTRICTS_WITH_POST_OFFICES } from "@/data/bangladeshDistricts";
 
 export const HeroSection = () => {
   console.log('HeroSection component rendered');
   const router = useRouter();
+  const { showFinal } = useAnimationSequence();
   const { theme } = useTheme();
   const [currentDivision, setCurrentDivision] = useState(0);
   const [currentTutor, setCurrentTutor] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isTutorPaused, setIsTutorPaused] = useState(false);
   const [divisions, setDivisions] = useState<Division[]>([]);
-  const [tutorDistricts, setTutorDistricts] = useState<TutorDistrict[]>([]);
+  const [tutorDivisions, setTutorDivisions] = useState<TutorDivision[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const slideInterval = useRef<NodeJS.Timeout | null>(null);
   const slidesPerView = { 
-    mobile: 4,  // 4 slides for mobile
-    tablet: 5,  // 5 slides for tablet
-    laptop: 6,  // 6 slides for laptop
-    desktop: 8  // 8 slides for desktop
+    mobile: 3, 
+    tablet: 4,  
+    laptop: 5,  
+    desktop: 5
   };
   const sliderRef = useRef<HTMLDivElement>(null);
   
@@ -46,7 +54,7 @@ export const HeroSection = () => {
         setIsLoading(true);
         const data = await heroDataService.getHeroData();
         setDivisions(data.divisions);
-        setTutorDistricts(data.tutorDistricts);
+        setTutorDivisions(data.tutorDivisions);
       } catch (error) {
         console.error('Error fetching hero data:', error);
       } finally {
@@ -159,12 +167,12 @@ export const HeroSection = () => {
   
 
   
-  const totalSlides = divisions.length;
+  const totalSlides = divisions?.length || 0;
   const maxSlideIndex = Math.max(0, totalSlides - currentSlidesPerView);
 
 
 
-  const totalTutorSlides = tutorDistricts.length;
+  const totalTutorSlides = tutorDivisions?.length || 0;
   const maxTutorSlideIndex = Math.max(0, totalTutorSlides - currentSlidesPerView);
 
   useEffect(() => {
@@ -315,18 +323,9 @@ export const HeroSection = () => {
     router.push(`/tuition-jobs?district=${encodeURIComponent(divisionName)}`);
   };
 
-  const handleTutorDistrictClick = (districtName: string) => {
-    // Find the district ID by name from the districts data
-    const district = BANGLADESH_DISTRICTS_WITH_POST_OFFICES.find(d => 
-      d.name.toLowerCase() === districtName.toLowerCase()
-    );
-    
-    if (district) {
-      router.push(`/premium-tutors?district=${encodeURIComponent(district.id)}`);
-    } else {
-      // Fallback to using the name if ID not found
-      router.push(`/premium-tutors?district=${encodeURIComponent(districtName)}`);
-    }
+  const handleTutorDivisionClick = (divisionName: string) => {
+    // Navigate to premium tutors page with division filter
+    router.push(`/premium-tutors?division=${encodeURIComponent(divisionName)}`);
   };
 
   return (
@@ -411,14 +410,14 @@ export const HeroSection = () => {
                 <div className="absolute -bottom-1 -left-3 w-1.5 h-1.5 bg-green-300 rounded-full animate-bounce opacity-60 delay-700"></div>
               </div>
               
-              {/* Divisional Tutors Section */}
+              {/* Divisional Tution job Section */}
               <div className="mt-6 sm:mt-8">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2 sm:gap-0">
                   <h3 className="text-base sm:text-lg font-medium text-gray-700 flex flex-col sm:flex-row sm:items-center">
                     <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-bold">Available Jobs</span>
                     <span className="sm:ml-2 text-xs sm:text-sm text-gray-500">
-                      {isLoading ? 'Loading...' : `(${divisions.reduce((acc, div) => acc + div.count, 0).toLocaleString()} jobs)`}
-                      {!isLoading && <span className="ml-1 text-green-500 animate-pulse">●</span>}
+                      {isLoading ? 'Loading...' : `(${divisions?.reduce((acc, div) => acc + div.count, 0)?.toLocaleString() || '0'} jobs)`}
+                      
                     </span>
                   </h3>
                   <div className="flex space-x-2">
@@ -466,44 +465,44 @@ export const HeroSection = () => {
                             key={`loading-division-${index}`}
                             className={`flex-none px-0.5 xs:px-0.5 sm:px-1 ${
                               currentSlidesPerView === 1 ? 'w-full' : 
-                              currentSlidesPerView === 2 ? 'w-1/2' : 
-                              currentSlidesPerView === 3 ? 'w-1/3' : 
-                              currentSlidesPerView === 4 ? 'w-1/4' :
-                              currentSlidesPerView === 5 ? 'w-1/5' : 
-                              currentSlidesPerView === 6 ? 'w-1/6' :
-                              currentSlidesPerView === 7 ? 'w-1/7' : 
-                              currentSlidesPerView === 8 ? 'w-1/8' :
-                              currentSlidesPerView === 9 ? 'w-1/9' :
-                              currentSlidesPerView === 10 ? 'w-1/10' :
-                              currentSlidesPerView === 11 ? 'w-1/11' : 'w-1/12'
+                              currentSlidesPerView === 2 ? 'w-1/3' : 
+                              currentSlidesPerView === 3 ? 'w-1/4' : 
+                              currentSlidesPerView === 4 ? 'w-1/5' :
+                              currentSlidesPerView === 5 ? 'w-1/6' : 
+                              currentSlidesPerView === 6 ? 'w-1/7' :
+                              currentSlidesPerView === 7 ? 'w-1/8' : 
+                              currentSlidesPerView === 8 ? 'w-1/9' :
+                              currentSlidesPerView === 9 ? 'w-1/10' :
+                              currentSlidesPerView === 10 ? 'w-1/11' :
+                              currentSlidesPerView === 11 ? 'w-1/12' : 'w-1/12'
                             }`}
                           >
-                            <div className="bg-gray-200 animate-pulse p-1 xs:p-1.5 sm:p-2.5 rounded-md sm:rounded-lg h-[28px] xs:h-[32px] sm:h-[38px]"></div>
+                            <div className="bg-gray-200 animate-pulse p-0.5 xs:p-1 sm:p-1.5 rounded-md sm:rounded-lg h-[28px] xs:h-[32px] sm:h-[38px]"></div>
                           </div>
                         ))
                       ) : (
-                        divisions.map((division, index) => (
+                        divisions?.map((division, index) => (
                         <div 
                           key={division.name} 
                           className={`flex-none px-0.5 xs:px-0.5 sm:px-1 ${
                             currentSlidesPerView === 1 ? 'w-full' : 
-                            currentSlidesPerView === 2 ? 'w-1/2' : 
-                            currentSlidesPerView === 3 ? 'w-1/3' : 
-                            currentSlidesPerView === 4 ? 'w-1/4' :
-                            currentSlidesPerView === 5 ? 'w-1/5' : 
-                            currentSlidesPerView === 6 ? 'w-1/6' :
-                            currentSlidesPerView === 7 ? 'w-1/7' : 
-                            currentSlidesPerView === 8 ? 'w-1/8' :
-                            currentSlidesPerView === 9 ? 'w-1/9' :
-                            currentSlidesPerView === 10 ? 'w-1/10' :
-                            currentSlidesPerView === 11 ? 'w-1/11' : 'w-1/12'
+                            currentSlidesPerView === 2 ? 'w-1/3' : 
+                            currentSlidesPerView === 3 ? 'w-1/4' : 
+                            currentSlidesPerView === 4 ? 'w-1/5' :
+                            currentSlidesPerView === 5 ? 'w-1/6' : 
+                            currentSlidesPerView === 6 ? 'w-1/7' :
+                            currentSlidesPerView === 7 ? 'w-1/8' : 
+                            currentSlidesPerView === 8 ? 'w-1/9' :
+                            currentSlidesPerView === 9 ? 'w-1/10' :
+                            currentSlidesPerView === 10 ? 'w-1/11' :
+                            currentSlidesPerView === 11 ? 'w-1/12' : 'w-1/12'
                           }`}
                         >
                           <div 
                             className={cn(
                               "bg-gradient-to-br", 
                               theme === "dark" ? "from-gray-700 to-gray-800" : division.color,
-                              "p-1 xs:p-1.5 sm:p-2.5 rounded-md sm:rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer",
+                              "p-0.5 xs:p-1 sm:p-1.5 rounded-md sm:rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer",
                               theme === "dark" 
                                 ? "h-[28px] xs:h-[32px] sm:h-[38px] flex items-center justify-center border border-gray-600 transform hover:scale-105 hover:border-green-600 group" 
                                 : "h-[28px] xs:h-[32px] sm:h-[38px] flex items-center justify-center border border-green-100 transform hover:scale-105 hover:border-green-300 group"
@@ -527,7 +526,7 @@ export const HeroSection = () => {
                 
                 {/* Slide indicators */}
                 <div className="hidden sm:flex justify-center mt-3 space-x-1">
-                  {Array.from({ length: maxSlideIndex + 1 }).map((_, index) => (
+                  {Array.from({ length: Math.max(0, maxSlideIndex + 1) }).map((_, index) => (
                     <button
                       key={index}
                       className={`h-1.5 rounded-full transition-all ${currentDivision === index 
@@ -546,22 +545,22 @@ export const HeroSection = () => {
                   <h3 className="text-base sm:text-lg font-medium text-gray-700 flex flex-col sm:flex-row sm:items-center">
                     <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-bold">Available Tutors</span>
                     <span className="sm:ml-2 text-xs sm:text-sm text-gray-500">
-                      {isLoading ? 'Loading...' : `(${tutorDistricts.length} districts)`}
-                      {!isLoading && <span className="ml-1 text-green-500 animate-pulse">●</span>}
+                      {isLoading ? 'Loading...' : `(${tutorDivisions?.reduce((acc, div) => acc + div.count, 0)?.toLocaleString() || '0'} tutors)`}
+                      
                     </span>
                   </h3>
                   <div className="flex space-x-2">
                     <button 
                       onClick={prevTutorSlide}
                       className="p-1 sm:p-1.5 rounded-full bg-green-100 hover:bg-green-200 transition-colors shadow-sm"
-                      aria-label="Previous district slide"
+                      aria-label="Previous tutor division slide"
                     >
                       <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4 text-green-700" />
                     </button>
                     <button 
                       onClick={nextTutorSlide}
                       className="p-1 sm:p-1.5 rounded-full bg-green-100 hover:bg-green-200 transition-colors shadow-sm"
-                      aria-label="Next district slide"
+                      aria-label="Next tutor division slide"
                     >
                       <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-green-700" />
                     </button>
@@ -584,56 +583,57 @@ export const HeroSection = () => {
                         // Loading skeleton for districts
                         Array.from({ length: 4 }).map((_, index) => (
                           <div 
-                            key={`loading-district-${index}`}
+                            key={`loading-tutor-division-${index}`}
                             className={`flex-none px-0.5 xs:px-0.5 sm:px-1 ${
                               currentSlidesPerView === 1 ? 'w-full' : 
-                              currentSlidesPerView === 2 ? 'w-1/2' : 
-                              currentSlidesPerView === 3 ? 'w-1/3' : 
-                              currentSlidesPerView === 4 ? 'w-1/4' :
-                              currentSlidesPerView === 5 ? 'w-1/5' : 
-                              currentSlidesPerView === 6 ? 'w-1/6' :
-                              currentSlidesPerView === 7 ? 'w-1/7' : 
-                              currentSlidesPerView === 8 ? 'w-1/8' :
-                              currentSlidesPerView === 9 ? 'w-1/9' :
-                              currentSlidesPerView === 10 ? 'w-1/10' :
-                              currentSlidesPerView === 11 ? 'w-1/11' : 'w-1/12'
+                              currentSlidesPerView === 2 ? 'w-1/3' : 
+                              currentSlidesPerView === 3 ? 'w-1/4' : 
+                              currentSlidesPerView === 4 ? 'w-1/5' :
+                              currentSlidesPerView === 5 ? 'w-1/6' : 
+                              currentSlidesPerView === 6 ? 'w-1/7' :
+                              currentSlidesPerView === 7 ? 'w-1/8' : 
+                              currentSlidesPerView === 8 ? 'w-1/9' :
+                              currentSlidesPerView === 9 ? 'w-1/10' :
+                              currentSlidesPerView === 10 ? 'w-1/11' :
+                              currentSlidesPerView === 11 ? 'w-1/12' : 'w-1/12'
                             }`}
                           >
-                            <div className="bg-gray-200 animate-pulse p-1 xs:p-1.5 sm:p-2.5 rounded-md sm:rounded-lg h-[28px] xs:h-[32px] sm:h-[38px]"></div>
+                            <div className="bg-gray-200 animate-pulse p-0.5 xs:p-1 sm:p-1.5 rounded-md sm:rounded-lg h-[28px] xs:h-[32px] sm:h-[38px]"></div>
                           </div>
                         ))
                       ) : (
-                        tutorDistricts.map((district, index) => (
+                        tutorDivisions?.map((division, index) => (
                         <div 
-                          key={district.id || index} 
+                          key={division.name} 
                           className={`flex-none px-0.5 xs:px-0.5 sm:px-1 ${
                             currentSlidesPerView === 1 ? 'w-full' : 
-                            currentSlidesPerView === 2 ? 'w-1/2' : 
-                            currentSlidesPerView === 3 ? 'w-1/3' : 
-                            currentSlidesPerView === 4 ? 'w-1/4' :
-                            currentSlidesPerView === 5 ? 'w-1/5' : 
-                            currentSlidesPerView === 6 ? 'w-1/6' :
-                            currentSlidesPerView === 7 ? 'w-1/7' : 
-                            currentSlidesPerView === 8 ? 'w-1/8' :
-                            currentSlidesPerView === 9 ? 'w-1/9' :
-                            currentSlidesPerView === 10 ? 'w-1/10' :
-                            currentSlidesPerView === 11 ? 'w-1/11' : 'w-1/12'
+                            currentSlidesPerView === 2 ? 'w-1/3' : 
+                            currentSlidesPerView === 3 ? 'w-1/4' : 
+                            currentSlidesPerView === 4 ? 'w-1/5' :
+                            currentSlidesPerView === 5 ? 'w-1/6' : 
+                            currentSlidesPerView === 6 ? 'w-1/7' :
+                            currentSlidesPerView === 7 ? 'w-1/8' : 
+                            currentSlidesPerView === 8 ? 'w-1/9' :
+                            currentSlidesPerView === 9 ? 'w-1/10' :
+                            currentSlidesPerView === 10 ? 'w-1/11' :
+                            currentSlidesPerView === 11 ? 'w-1/12' : 'w-1/12'
                           }`}
                         >
                           <div 
                             className={cn(
-                              "bg-gradient-to-br from-green-50 to-emerald-50",
-                              "p-1 xs:p-1.5 sm:p-2.5 rounded-md sm:rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer",
+                              "bg-gradient-to-br", 
+                              theme === "dark" ? "from-gray-700 to-gray-800" : division.color,
+                              "p-0.5 xs:p-1 sm:p-1.5 rounded-md sm:rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer",
                               theme === "dark" 
                                 ? "h-[28px] xs:h-[32px] sm:h-[38px] flex items-center justify-center border border-gray-600 transform hover:scale-105 hover:border-green-600 group" 
                                 : "h-[28px] xs:h-[32px] sm:h-[38px] flex items-center justify-center border border-green-100 transform hover:scale-105 hover:border-green-300 group"
                             )}
-                            onClick={() => handleTutorDistrictClick(district.name)}
+                            onClick={() => handleTutorDivisionClick(division.name)}
                           >
                             <div className="text-center group-hover:-translate-y-0.5 sm:group-hover:-translate-y-1 transition-transform duration-300 flex items-center justify-center">
                               <div className="flex items-center gap-0.5 sm:gap-1">
-                                                                <h4 className={theme === "dark" ? "text-[9px] xs:text-[10px] sm:text-xs font-semibold text-green-400" : "text-[9px] xs:text-[10px] sm:text-xs font-semibold text-green-800"}>
-                                  {district.name} - {district.count}
+                                                                <h4 className={theme === "dark" ? "text-[9px] xs:text-[10px] sm:text-xs font-semibold text-green-400" : "text-[9px] xs:text-[10px] sm:text-xs font-semibold text-black"}>
+                                  {division.name} - {division.count}
                                 </h4>
                               </div>
                             </div>
@@ -647,14 +647,14 @@ export const HeroSection = () => {
                 
                 {/* Tutor Slide indicators */}
                 <div className="hidden sm:flex justify-center mt-3 space-x-1">
-                  {Array.from({ length: maxTutorSlideIndex + 1 }).map((_, index) => (
+                  {Array.from({ length: Math.max(0, maxTutorSlideIndex + 1) }).map((_, index) => (
                     <button
                       key={index}
                       className={`h-1.5 rounded-full transition-all ${currentTutor === index 
                         ? theme === "dark" ? 'w-4 bg-green-400' : 'w-4 bg-green-500' 
                         : theme === "dark" ? 'w-1.5 bg-green-700' : 'w-1.5 bg-green-200'}`}
                       onClick={() => setCurrentTutor(index)}
-                      aria-label={`Go to district slide ${index + 1}`}
+                      aria-label={`Go to tutor division slide ${index + 1}`}
                     />
                   ))}
                 </div>
@@ -662,19 +662,36 @@ export const HeroSection = () => {
             </div>
 
             {/* Right Content - Illustration */}
-            <div className="relative">
+            <div className="relative flex justify-center lg:justify-start mt-8 lg:mt-0">
               <div className="relative">
                 <div className="relative z-10">
-                  {/* Teacher and Student Illustration */}
+                  {/* Animated Teacher and Student Illustration */}
                   <div className="bg-transparent">
-                    <div className="flex items-center justify-center h-64 relative">
-                        <Image                         
-                          src="https://tutorsheba.com/_next/static/media/Teacher-rafiki.81362516.svg"                         
-                          alt="Teacher Illustration"                         
-                          width={480}
-                          height={300}
-                          className="h-120 object-contain transform transition-transform duration-700 group-hover:scale-110 group-hover:rotate-2 filter hover:drop-shadow-xl"                       
-                        />
+                    <div className="flex items-center justify-center h-48 sm:h-56 md:h-64 lg:h-80 xl:h-96 relative">
+                      {/* Final Combined Image Container - Responsive sizing with bigger desktop */}
+                      <div className="relative w-[280px] h-[180px] sm:w-[320px] sm:h-[200px] md:w-[380px] md:h-[240px] lg:w-[500px] lg:h-[320px] xl:w-[580px] xl:h-[360px]">
+                        {/* Final Combined Image - Centered */}
+                        {showFinal && (
+                          <div 
+                            className="absolute top-0 left-0 right-0 bottom-0 transition-all duration-1000 ease-out flex items-center justify-center"
+                            style={{ 
+                              animation: 'fadeInScale 1.2s ease-out forwards'
+                            }}
+                          >
+                            <Image
+                              src="/hero-section/All.png"
+                              alt="Complete Classroom Scene"
+                              width={280}
+                              height={180}
+                              className="opacity-0 object-contain sm:w-[320px] sm:h-[200px] md:w-[380px] md:h-[240px] lg:w-[500px] lg:h-[320px] xl:w-[580px] xl:h-[360px]"
+                              style={{ 
+                                animation: 'fadeInScale 1.2s ease-out forwards'
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
                       <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-emerald-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl"></div>
                     </div>
                   </div>
@@ -682,10 +699,10 @@ export const HeroSection = () => {
               </div>
 
               
-              {/* Enhanced Floating Elements */}
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-green-200 to-emerald-200 rounded-full opacity-60 animate-pulse shadow-lg"></div>
-              <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-gradient-to-br from-teal-200 to-green-200 rounded-full opacity-40 animate-bounce shadow-lg"></div>
-              <div className="absolute top-1/2 -right-8 w-16 h-16 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full opacity-50 animate-ping"></div>
+              {/* Enhanced Floating Elements - Responsive positioning */}
+              <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 md:-top-4 md:-right-4 lg:-top-6 lg:-right-6 xl:-top-8 xl:-right-8 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 bg-gradient-to-br from-green-200 to-emerald-200 rounded-full opacity-60 animate-pulse shadow-lg"></div>
+              <div className="absolute -bottom-3 -left-3 sm:-bottom-4 sm:-left-4 md:-bottom-6 md:-left-6 lg:-bottom-8 lg:-left-8 xl:-bottom-10 xl:-left-10 w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 xl:w-40 xl:h-40 bg-gradient-to-br from-teal-200 to-green-200 rounded-full opacity-40 animate-bounce shadow-lg"></div>
+              <div className="absolute top-1/2 -right-4 sm:-right-5 md:-right-6 lg:-right-10 xl:-right-12 w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full opacity-50 animate-ping"></div>
             </div>
           </div>
         </div>

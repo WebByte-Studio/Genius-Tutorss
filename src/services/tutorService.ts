@@ -14,7 +14,7 @@ export interface Tutor {
   bio: string | null;
   education: string | null;
   experience: string | null;
-  subjects: string | null;
+  subjects: string | string[] | null;
   hourly_rate: number | null;
   rating: number;
   total_reviews: number;
@@ -41,10 +41,16 @@ export interface Tutor {
 export interface TutorResponse {
   success: boolean;
   data: Tutor[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
 class TutorService {
-  private baseUrl = `${API_BASE_URL.replace('/api', '')}/api/tutors`;
+  private baseUrl = `${API_BASE_URL}/tutors`;
 
   private async request<T>(
     endpoint: string,
@@ -58,6 +64,7 @@ class TutorService {
       ...options,
     };
 
+    console.log('Making request to:', `${this.baseUrl}${endpoint}`);
     const response = await fetch(`${this.baseUrl}${endpoint}`, config);
 
     if (!response.ok) {
@@ -65,7 +72,9 @@ class TutorService {
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('Raw response from API:', data);
+    return data;
   }
 
   // Get all tutors
@@ -81,8 +90,12 @@ class TutorService {
     gender?: string;
     education?: string;
     availability?: string;
+    premium?: string;
+    verified?: number;
     sortBy?: string;
     sortOrder?: string;
+    page?: number;
+    limit?: number;
   }): Promise<TutorResponse> {
     const queryParams = new URLSearchParams();
     if (params) {

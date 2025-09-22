@@ -6,7 +6,6 @@ export interface TutorRequestFormData {
   studentGender: 'male' | 'female' | 'both';
   district: string;
   area: string;
-  postOffice: string;
   detailedLocation: string;
   category: string;
   selectedCategories: string[];
@@ -172,7 +171,11 @@ class TutorRequestService {
   }
 
   // Update tutor request
-  async updateTutorRequest(id: string, data: Partial<TutorRequestFormData>): Promise<{ success: boolean; message: string; data: any }> {
+  async updateTutorRequest(id: string, data: Partial<TutorRequestFormData> & { adminNote?: string; updateNotice?: string }): Promise<{ success: boolean; message: string; data: any }> {
+    console.log('Service: updateTutorRequest called with:', { id, data });
+    console.log('Service: updateNotice in data:', data.updateNotice, 'Type:', typeof data.updateNotice);
+    console.log('Service: adminNote in data:', data.adminNote, 'Type:', typeof data.adminNote);
+    
     return this.request(`/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

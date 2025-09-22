@@ -39,7 +39,6 @@ export default function ContactForm({ tutorId, tutorName, onContactSubmitted }: 
     studentGender: 'male',
     district: '',
     area: '',
-    postOffice: '',
     detailedLocation: '',
     category: '',
     selectedCategories: [],
@@ -73,8 +72,7 @@ export default function ContactForm({ tutorId, tutorName, onContactSubmitted }: 
         setAvailableAreas(district.areas.map(area => area.name));
         setFormData(prev => ({
           ...prev,
-          area: '',
-          postOffice: ''
+          area: ''
         }));
       } else {
         setAvailableAreas([]);
@@ -94,10 +92,6 @@ export default function ContactForm({ tutorId, tutorName, onContactSubmitted }: 
         const area = district.areas.find(a => a.name === formData.area);
         if (area) {
           setAvailablePostOffices(area.postOffices);
-          setFormData(prev => ({
-            ...prev,
-            postOffice: ''
-          }));
         } else {
           setAvailablePostOffices([]);
         }
@@ -241,7 +235,7 @@ export default function ContactForm({ tutorId, tutorName, onContactSubmitted }: 
       setIsSubmitting(true);
       
       // Validate form data
-      if (!formData.phoneNumber || !formData.district || !formData.area || !formData.postOffice) {
+      if (!formData.phoneNumber || !formData.district || !formData.area) {
         toast({
           title: 'Missing Information',
           description: 'Please fill in all required fields',
@@ -412,19 +406,6 @@ export default function ContactForm({ tutorId, tutorName, onContactSubmitted }: 
           />
         </div>
         
-        <div>
-          <Label htmlFor="postOffice">Post Office *</Label>
-          <SearchableSelect
-            value={formData.postOffice}
-            onValueChange={(value) => handleChange('postOffice', value)}
-            placeholder="Select post office"
-            options={availablePostOffices.map((postOffice) => ({
-              value: postOffice.name,
-              label: `${postOffice.name} (${postOffice.postcode})`
-            }))}
-            disabled={!formData.area}
-          />
-        </div>
         
         <div>
           <Label htmlFor="detailedLocation">Detailed Location (Optional)</Label>

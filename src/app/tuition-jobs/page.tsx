@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MapPin, Clock, DollarSign, BookOpen, Search, LayoutGrid, List, Filter, RefreshCw, User, Users } from "lucide-react";
+import { MapPin, Clock, DollarSign, BookOpen, Search, LayoutGrid, List, Filter, RefreshCw, User, Users, Home, Monitor, Globe, AlertTriangle, Wifi, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext.next";
 import { tuitionJobsService, TuitionJob } from "@/services/tuitionJobsService";
 import { useToast } from "@/components/ui/use-toast";
@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { BANGLADESH_DISTRICTS_WITH_POST_OFFICES } from '@/data/bangladeshDistricts';
 import { useSearchParams, useRouter } from "next/navigation";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function TuitionJobs() {
   const { user, profile, signOut } = useAuth();
@@ -45,6 +46,9 @@ export default function TuitionJobs() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
 
   const fetchTuitionJobs = useCallback(async () => {
     setIsLoading(true);
@@ -80,11 +84,21 @@ export default function TuitionJobs() {
         params.status = selectedStatus;
       }
       
+      // Add pagination parameters
+      params.page = currentPage;
+      params.limit = 6;
+      
       const response = await tuitionJobsService.getAllTuitionJobs(params);
       if (response.success) {
         console.log('Fetched tuition jobs:', response.data);
         console.log('Total jobs fetched:', response.data.length);
         setJobs(response.data);
+        
+        // Update pagination info
+        if (response.pagination) {
+          setTotalPages(response.pagination.pages);
+          setTotalCount(response.pagination.total);
+        }
       } else {
         setError('Failed to fetch tuition jobs');
       }
@@ -99,7 +113,7 @@ export default function TuitionJobs() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedSubject, selectedDistrict, selectedArea, selectedPostOffice, selectedJobType, selectedCategory, selectedStatus, toast]);
+  }, [selectedSubject, selectedDistrict, selectedArea, selectedPostOffice, selectedJobType, selectedCategory, selectedStatus, currentPage, toast]);
 
   // Fetch taxonomy data
   useEffect(() => {
@@ -123,7 +137,12 @@ export default function TuitionJobs() {
 
   useEffect(() => {
     fetchTuitionJobs();
-  }, [selectedSubject, selectedDistrict, selectedArea, selectedPostOffice, selectedCategory, selectedStatus, fetchTuitionJobs]);
+  }, [fetchTuitionJobs]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedSubject, selectedDistrict, selectedArea, selectedPostOffice, selectedJobType, selectedCategory, selectedStatus]);
 
   // Read URL parameters on component mount
   useEffect(() => {
@@ -397,15 +416,15 @@ export default function TuitionJobs() {
             </CardHeader>
             <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
               <div className="space-y-2">
-                <Label htmlFor="category" className="text-sm">Category</Label>
+                <Label htmlFor="category" className="text-sm font-bold text-green-600">Category</Label>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger id="category" className="h-10 sm:h-11">
+                  <SelectTrigger id="category" className="h-10 sm:h-11 font-bold">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="all" className="font-bold">All Categories</SelectItem>
                     {taxonomyData?.categories.map((category: any) => (
-                      <SelectItem key={category.id} value={category.name}>
+                      <SelectItem key={category.id} value={category.name} className="font-bold">
                         {category.name}
                       </SelectItem>
                     ))}
@@ -414,35 +433,35 @@ export default function TuitionJobs() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="status" className="text-sm">Status</Label>
+                <Label htmlFor="status" className="text-sm font-bold text-green-600">Status</Label>
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger id="status" className="h-10 sm:h-11">
+                  <SelectTrigger id="status" className="h-10 sm:h-11 font-bold">
                     <SelectValue placeholder="All Statuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="assign">Assigned</SelectItem>
+                    <SelectItem value="all" className="font-bold">All Statuses</SelectItem>
+                    <SelectItem value="active" className="font-bold">Active</SelectItem>
+                    <SelectItem value="inactive" className="font-bold">Inactive</SelectItem>
+                    <SelectItem value="completed" className="font-bold">Completed</SelectItem>
+                    <SelectItem value="assign" className="font-bold">Assigned</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground font-bold">
                   Select "All Statuses" to see all requests including inactive ones
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subject" className="text-sm">Subject</Label>
+                <Label htmlFor="subject" className="text-sm font-bold text-green-600">Subject</Label>
                 <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                  <SelectTrigger id="subject" className="h-10 sm:h-11">
+                  <SelectTrigger id="subject" className="h-10 sm:h-11 font-bold">
                     <SelectValue placeholder="All Subjects" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Subjects</SelectItem>
+                    <SelectItem value="all" className="font-bold">All Subjects</SelectItem>
                     {taxonomyData?.categories?.flatMap((category: any) => 
                       category.subjects?.map((subject: any) => (
-                        <SelectItem key={subject.id} value={subject.name}>
+                        <SelectItem key={subject.id} value={subject.name} className="font-bold">
                           {subject.name}
                         </SelectItem>
                       ))
@@ -452,15 +471,15 @@ export default function TuitionJobs() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="district" className="text-sm">District</Label>
+                <Label htmlFor="district" className="text-sm font-bold text-green-600">District</Label>
                 <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
-                  <SelectTrigger id="district" className="h-10 sm:h-11">
+                  <SelectTrigger id="district" className="h-10 sm:h-11 font-bold">
                     <SelectValue placeholder="All Districts" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Districts</SelectItem>
+                    <SelectItem value="all" className="font-bold">All Districts</SelectItem>
                     {BANGLADESH_DISTRICTS_WITH_POST_OFFICES.map((district) => (
-                      <SelectItem key={district.id} value={district.id}>
+                      <SelectItem key={district.id} value={district.id} className="font-bold">
                         {district.name}
                       </SelectItem>
                     ))}
@@ -469,15 +488,15 @@ export default function TuitionJobs() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="area" className="text-sm">Area</Label>
+                <Label htmlFor="area" className="text-sm font-bold text-green-600">Area</Label>
                 <Select value={selectedArea} onValueChange={setSelectedArea} disabled={selectedDistrict === 'all'}>
-                  <SelectTrigger id="area" className="h-10 sm:h-11">
+                  <SelectTrigger id="area" className="h-10 sm:h-11 font-bold">
                     <SelectValue placeholder={selectedDistrict === 'all' ? "Select a district first" : "All Areas"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Areas</SelectItem>
+                    <SelectItem value="all" className="font-bold">All Areas</SelectItem>
                     {availableAreas.map((area) => (
-                      <SelectItem key={area} value={area}>
+                      <SelectItem key={area} value={area} className="font-bold">
                         {area}
                       </SelectItem>
                     ))}
@@ -486,15 +505,15 @@ export default function TuitionJobs() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="postOffice" className="text-sm">Post Office</Label>
+                <Label htmlFor="postOffice" className="text-sm font-bold text-green-600">Post Office</Label>
                 <Select value={selectedPostOffice} onValueChange={setSelectedPostOffice} disabled={selectedArea === 'all'}>
-                  <SelectTrigger id="postOffice" className="h-10 sm:h-11">
+                  <SelectTrigger id="postOffice" className="h-10 sm:h-11 font-bold">
                     <SelectValue placeholder={selectedArea === 'all' ? "Select an area first" : "All Post Offices"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Post Offices</SelectItem>
+                    <SelectItem value="all" className="font-bold">All Post Offices</SelectItem>
                     {availablePostOffices.map((postOffice) => (
-                      <SelectItem key={postOffice.name} value={postOffice.name}>
+                      <SelectItem key={postOffice.name} value={postOffice.name} className="font-bold">
                         {postOffice.name} ({postOffice.postcode})
                       </SelectItem>
                     ))}
@@ -503,47 +522,64 @@ export default function TuitionJobs() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="jobType" className="text-sm">Tutoring Type</Label>
+                <Label htmlFor="jobType" className="text-sm font-bold text-green-600">Tutoring Type</Label>
                 <Select value={selectedJobType} onValueChange={setSelectedJobType}>
-                  <SelectTrigger id="jobType" className="h-10 sm:h-11">
-                    <SelectValue placeholder="All Types" />
+                  <SelectTrigger id="jobType" className="h-10 sm:h-11 font-bold">
+                    <div className="flex items-center">
+                      
+                      <SelectValue placeholder="All Types" />
+                    </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="Home">Home Tutoring</SelectItem>
-                    <SelectItem value="Online">Online Tutoring</SelectItem>
-                    <SelectItem value="Both">Both</SelectItem>
+                    <SelectItem value="all" className="font-bold">
+                      <div className="flex items-center">
+                        <Globe className="mr-2 h-4 w-4 text-muted-foreground" />
+                        All Types
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Home" className="font-bold">
+                      <div className="flex items-center">
+                        <Home className="mr-2 h-4 w-4 text-blue-500" />
+                        Home Tutoring
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Online" className="font-bold">
+                      <div className="flex items-center">
+                        <Monitor className="mr-2 h-4 w-4 text-green-500" />
+                        Online Tutoring
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Both" className="font-bold">
+                      <div className="flex items-center">
+                        <Globe className="mr-2 h-4 w-4 text-purple-500" />
+                        Both
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm">Salary Range (BDT)</Label>
+                <Label className="text-sm font-bold text-green-600">Salary Range (BDT)</Label>
                 <div className="flex items-center gap-2">
                   <Input 
                     type="number" 
                     placeholder="Min" 
                     value={salaryRange[0]} 
                     onChange={(e) => setSalaryRange([parseInt(e.target.value) || 0, salaryRange[1]])}
-                    className="h-10 sm:h-11 text-sm"
+                    className="h-10 sm:h-11 text-sm font-bold"
                   />
-                  <span className="text-sm">to</span>
+                  <span className="text-sm font-bold">to</span>
                   <Input 
                     type="number" 
                     placeholder="Max" 
                     value={salaryRange[1]} 
                     onChange={(e) => setSalaryRange([salaryRange[0], parseInt(e.target.value) || 0])}
-                    className="h-10 sm:h-11 text-sm"
+                    className="h-10 sm:h-11 text-sm font-bold"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Jobs with salaries up to ৳1M are shown by default. Jobs with extreme salaries (above ৳1M) are always shown regardless of filters.
-                </p>
-                <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
-                  🔍 <strong>How it works:</strong> The salary filter shows jobs within your selected range, plus any jobs with extremely high salaries (above ৳1M) to ensure you don't miss premium opportunities.
-                </p>
                 {jobs.filter(job => job.salaryRangeMin > 1000000 || job.salaryRangeMax > 1000000).length > 0 && (
-                  <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
+                  <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200 font-bold">
                     💡 <strong>Note:</strong> There are {jobs.filter(job => job.salaryRangeMin > 1000000 || job.salaryRangeMax > 1000000).length} job(s) with salaries above ৳1M that are always visible.
                   </p>
                 )}
@@ -556,7 +592,10 @@ export default function TuitionJobs() {
                     checked={urgentOnly}
                     onCheckedChange={(checked) => setUrgentOnly(checked === true)}
                   />
-                  <Label htmlFor="urgent" className="text-sm font-normal">Urgent Positions</Label>
+                  <Label htmlFor="urgent" className="text-sm font-bold text-green-600 flex items-center">
+                    <AlertTriangle className="mr-2 h-4 w-4 text-red-500" />
+                    Urgent Positions
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -564,7 +603,10 @@ export default function TuitionJobs() {
                     checked={remoteOnly}
                     onCheckedChange={(checked) => setRemoteOnly(checked === true)}
                   />
-                  <Label htmlFor="remote" className="text-sm font-normal">Remote Available</Label>
+                  <Label htmlFor="remote" className="text-sm font-bold text-green-600 flex items-center">
+                    <Wifi className="mr-2 h-4 w-4 text-blue-500" />
+                    Remote Available
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -572,12 +614,15 @@ export default function TuitionJobs() {
                     checked={newListingsOnly}
                     onCheckedChange={(checked) => setNewListingsOnly(checked === true)}
                   />
-                  <Label htmlFor="newListings" className="text-sm font-normal">New Listings</Label>
+                  <Label htmlFor="newListings" className="text-sm font-bold text-green-600 flex items-center">
+                    <Sparkles className="mr-2 h-4 w-4 text-green-500" />
+                    New Listings
+                  </Label>
                 </div>
               </div>
 
               <Button 
-                className="w-full h-10 sm:h-11" 
+                className="w-full h-10 sm:h-11 font-bold" 
                 variant="outline" 
                 onClick={() => {
                   setSelectedSubject("all");
@@ -604,6 +649,13 @@ export default function TuitionJobs() {
         <div className="flex-1 space-y-4 sm:space-y-6 order-2 lg:order-2">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div>
+              <p className="text-sm text-muted-foreground">
+                {isLoading ? (
+                  <span className="flex items-center"><RefreshCw className="h-3 w-3 mr-2 animate-spin" /> Loading jobs...</span>
+                ) : (
+                  <>Showing <span className="font-medium">{filteredJobs.length}</span> of <span className="font-medium">{totalCount}</span> jobs</>
+                )}
+              </p>
               {selectedCategory !== 'all' && (
                 <div className="mt-2 flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="text-xs sm:text-sm">
@@ -658,7 +710,7 @@ export default function TuitionJobs() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by subject..."
-              className="pl-10 h-11"
+              className="pl-10 h-11 font-bold"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
             />
@@ -755,8 +807,8 @@ export default function TuitionJobs() {
                       <div className="p-4 sm:p-6 flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
                           <div>
-                            <h3 className="text-base sm:text-lg font-semibold">{job.studentName}'s Request</h3>
-                            <p className="text-xs sm:text-sm text-muted-foreground">Class {job.studentClass} • {job.medium} Medium • ID: {job.id}</p>
+                            <h3 className="text-base sm:text-lg font-bold text-black">{job.studentName}'s Request</h3>
+                            <p className="text-xs sm:text-sm font-bold text-black">Class {job.studentClass} • {job.medium} Medium • ID: {job.id}</p>
                           </div>
                           <div className="mt-2 sm:mt-0 flex items-center flex-wrap gap-1 sm:gap-2">
                             <Badge variant={job.tutoringType === "Home Tutoring" ? "default" : "outline"} className="text-xs">
@@ -776,38 +828,46 @@ export default function TuitionJobs() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-3">
                           <div className="flex items-center text-xs sm:text-sm">
                             <BookOpen className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                            <span className="font-bold">{job.subject}</span>
+                            <span className="font-bold text-green-600">{job.subject}</span>
                           </div>
                           <div className="flex items-center text-xs sm:text-sm">
                             <MapPin className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                            <span className="font-bold">{job.district}, {job.area}</span>
+                            <span className="font-bold text-green-600">{job.district}, {job.area}</span>
                             {job.postOffice && (
-                              <span className="text-xs text-muted-foreground ml-1">• {job.postOffice}</span>
+                              <span className="text-xs text-green-500 ml-1">• {job.postOffice}</span>
                             )}
                           </div>
 
                           <div className="flex items-center text-xs sm:text-sm">
                             <Clock className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                            <span className="font-bold">{job.daysPerWeek} days/week • {job.tutoringTime}</span>
+                            <span className="font-bold text-green-600">{job.daysPerWeek} days/week • {job.tutoringTime}</span>
                           </div>
                           <div className="flex items-center text-xs sm:text-sm">
                             <Users className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                            <span className="font-bold">{job.numberOfStudents} student(s) • {job.studentGender}</span>
+                            <span className="font-bold text-black">{job.numberOfStudents} student(s) • {job.studentGender}</span>
                           </div>
                           <div className="flex items-center text-xs sm:text-sm">
                             <User className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                            <span className="font-bold">Preferred: {job.preferredTeacherGender} teacher</span>
+                            <span className="font-bold text-green-600">Preferred: {job.preferredTeacherGender} teacher</span>
                           </div>
                         </div>
                         
                         {job.extraInformation && (
                           <div className="mt-3">
-                            <p className="text-xs sm:text-sm font-medium">Additional Information:</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground">{job.extraInformation}</p>
+                            <p className="text-xs sm:text-sm font-bold text-black">Additional Information:</p>
+                            <p className="text-xs sm:text-sm font-bold text-black">{job.extraInformation}</p>
                           </div>
                         )}
                         
-                        <div className="text-xs text-muted-foreground mt-3">
+                        {job.adminNote && (
+                          <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
+                            <p className="text-xs sm:text-sm font-bold text-blue-800">Admin Note:</p>
+                            <p className="text-xs sm:text-sm text-blue-700">{job.adminNote}</p>
+                          </div>
+                        )}
+                        
+                        
+                        <div className="text-xs font-bold text-black mt-3">
                           Posted: {new Date(job.createdAt).toLocaleDateString()}
                         </div>
                       </div>
@@ -823,50 +883,56 @@ export default function TuitionJobs() {
                   ))
                 ) : (
                   filteredJobs.map((job) => (
-                    <Card key={job.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                    <Card key={job.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
                       <CardHeader className="pb-2 p-4 sm:p-6">
                         <div className="flex justify-between items-start">
-                          <CardTitle className="text-lg sm:text-xl">{job.studentName}'s Request</CardTitle>
-                          <Badge variant="outline" className="text-xs">
-                            Tutoring Request
-                          </Badge>
+                          <CardTitle className="text-lg sm:text-xl font-bold text-black">{job.studentName}'s Request</CardTitle>
+                            <Badge variant="outline" className="text-xs text-black">
+                              Tutoring Request
+                            </Badge>
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                        <p className="text-xs sm:text-sm font-bold text-black mt-1">
                           Class {job.studentClass} • ID: {job.id}
                         </p>
                       </CardHeader>
-                      <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
-                        <div className="space-y-2">
-                          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                            <BookOpen className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="font-bold">{job.subject}</span>
+                      <CardContent className="flex flex-col flex-grow p-4 sm:p-6">
+                        <div className="space-y-2 flex-grow">
+                          <div className="space-y-2">
+                            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                              <BookOpen className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                              <span className="font-bold text-black">{job.subject}</span>
+                            </div>
+                            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                              <MapPin className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                              <span className="font-bold text-green-600">{job.district}, {job.area}</span>
+                              {job.postOffice && (
+                                <span className="text-xs text-green-500 ml-1">• {job.postOffice}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                              <Users className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                              <span className="font-bold text-black">Student Gender: {job.studentGender}</span>
+                            </div>
+                            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                              <User className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                              <span className="font-bold text-green-600">Preferred: {job.preferredTeacherGender} teacher</span>
+                            </div>
                           </div>
-                          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                            <MapPin className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="font-bold">{job.district}, {job.area}</span>
-                            {job.postOffice && (
-                              <span className="text-xs text-muted-foreground ml-1">• {job.postOffice}</span>
-                            )}
-                          </div>
-
-
-                          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                            <Users className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="font-bold">Student Gender: {job.studentGender}</span>
-                          </div>
-                          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                            <User className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="font-bold">Preferred: {job.preferredTeacherGender} teacher</span>
-                          </div>
+                          {job.extraInformation && (
+                            <div className="mt-2">
+                              <p className="text-xs sm:text-sm font-bold text-black">Additional Information:</p>
+                              <p className="text-xs sm:text-sm font-bold text-black">{job.extraInformation}</p>
+                            </div>
+                          )}
+                          {job.adminNote && (
+                            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                              <p className="text-xs sm:text-sm font-bold text-blue-800">Admin Note:</p>
+                              <p className="text-xs sm:text-sm text-blue-700">{job.adminNote}</p>
+                            </div>
+                          )}
                         </div>
-                        {job.extraInformation && (
-                          <div className="mt-2">
-                            <p className="text-xs sm:text-sm font-medium">Additional Information:</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground">{job.extraInformation}</p>
-                          </div>
-                        )}
-                        <div className="flex justify-between items-center pt-2">
-                          <div className="text-xs text-muted-foreground">
+                        <div className="flex justify-between items-center pt-2 mt-4">
+                          <div className="text-xs font-bold text-black">
                             Posted: {new Date(job.createdAt).toLocaleDateString()}
                           </div>
                           <div className="flex items-center gap-2">
@@ -881,7 +947,7 @@ export default function TuitionJobs() {
                           </div>
                         </div>
                         <Button 
-                          className="w-full bg-green-600 hover:bg-green-700 text-white text-sm"
+                          className="w-full bg-green-600 hover:bg-green-700 text-white text-sm mt-4"
                           onClick={() => router.push(`/tuition-jobs/${job.id}`)}
                         >
                           View Details
@@ -890,6 +956,17 @@ export default function TuitionJobs() {
                     </Card>
                   ))
                 )}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {!isLoading && !error && filteredJobs.length > 0 && totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(page) => setCurrentPage(page)}
+                />
               </div>
             )}
           </div>

@@ -27,7 +27,6 @@ import { HistorySection } from "../admin/sections/HistorySection";
 export function ManagerDashboard({ user: pageUser }: { user: any }) {
   // Use the user from props or from the hook
   const {
-    stats,
     pendingUsers,
     accounts,
     jobs,
@@ -137,10 +136,6 @@ export function ManagerDashboard({ user: pageUser }: { user: any }) {
   const renderDashboard = () => {
     return (
       <DashboardOverview 
-        stats={stats.map(stat => ({
-          ...stat,
-          value: stat.value.toString()
-        }))}
         setActiveTab={setActiveTab}
         showAddUserModal={showAddUserModal}
         setShowAddUserModal={setShowAddUserModal}

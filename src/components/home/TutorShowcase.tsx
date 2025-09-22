@@ -205,7 +205,10 @@ export const TutorShowcase = () => {
                   {/* Specialties - Parse subjects if available */}
                   {tutor.subjects && (
                     <div className="flex flex-wrap gap-1 mt-2 sm:mt-3">
-                      {tutor.subjects.split(',').slice(0, 3).map((subject, idx) => (
+                      {(Array.isArray(tutor.subjects) 
+                        ? tutor.subjects 
+                        : tutor.subjects.split(',')
+                      ).slice(0, 3).map((subject, idx) => (
                         <Badge key={idx} variant="secondary" className="text-[10px] xs:text-xs px-1.5 py-0.5 xs:px-2 xs:py-0.5">
                           <strong>{subject.trim()}</strong>
                         </Badge>

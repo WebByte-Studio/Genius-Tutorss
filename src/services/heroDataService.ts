@@ -6,8 +6,7 @@ export interface Division {
   color: string;
 }
 
-export interface TutorDistrict {
-  id: string;
+export interface TutorDivision {
   name: string;
   count: number;
   avgRating: number;
@@ -17,7 +16,7 @@ export interface TutorDistrict {
 
 export interface HeroData {
   divisions: Division[];
-  tutorDistricts: TutorDistrict[];
+  tutorDivisions: TutorDivision[];
 }
 
 export const heroDataService = {
@@ -55,8 +54,15 @@ export const heroDataService = {
           { name: "Rangpur", count: 0, color: "from-teal-100 to-green-200" },
           { name: "Mymensingh", count: 0, color: "from-cyan-100 to-emerald-200" }
         ],
-        tutorDistricts: [
-          { id: "dhaka", name: "Dhaka", count: 0, avgRating: 0, topRatedCount: 0, color: "from-green-100 to-green-200" }
+        tutorDivisions: [
+          { name: "Dhaka", count: 0, avgRating: 0, topRatedCount: 0, color: "from-green-100 to-green-200" },
+          { name: "Chattogram", count: 0, avgRating: 0, topRatedCount: 0, color: "from-emerald-100 to-emerald-200" },
+          { name: "Barishal", count: 0, avgRating: 0, topRatedCount: 0, color: "from-teal-100 to-teal-200" },
+          { name: "Sylhet", count: 0, avgRating: 0, topRatedCount: 0, color: "from-cyan-100 to-cyan-200" },
+          { name: "Rajshahi", count: 0, avgRating: 0, topRatedCount: 0, color: "from-green-100 to-teal-200" },
+          { name: "Khulna", count: 0, avgRating: 0, topRatedCount: 0, color: "from-emerald-100 to-cyan-200" },
+          { name: "Rangpur", count: 0, avgRating: 0, topRatedCount: 0, color: "from-teal-100 to-green-200" },
+          { name: "Mymensingh", count: 0, avgRating: 0, topRatedCount: 0, color: "from-cyan-100 to-emerald-200" }
         ]
       };
     }

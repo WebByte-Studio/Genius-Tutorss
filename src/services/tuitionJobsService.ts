@@ -26,6 +26,8 @@ export interface TuitionJob {
   experienceRequired?: string;
   availability?: string;
   extraInformation: string;
+  adminNote?: string;
+  updateNotice?: string;
   status: 'active' | 'inactive' | 'completed' | 'assign';
   urgent?: boolean;
   createdAt: string;
@@ -89,7 +91,7 @@ class TuitionJobsService {
     district?: string;
     page?: number;
     limit?: number;
-  }): Promise<TuitionJobsResponse> {
+  }): Promise<TuitionJobsResponse & { pagination?: any }> {
     const queryParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -99,9 +101,9 @@ class TuitionJobsService {
       });
     }
     
-    // Set a high limit to get all records if no limit is specified
+    // Set default limit if not specified
     if (!params?.limit) {
-      queryParams.append('limit', '100');
+      queryParams.append('limit', '12');
     }
     
     const queryString = queryParams.toString();
@@ -121,6 +123,7 @@ class TuitionJobsService {
         studentGender: job.student_gender || job.studentGender || 'Mixed',
         district: job.district || '',
         area: job.area || '',
+        postOffice: job.post_office || job.postOffice || '',
         locationDetails: job.location_details || job.locationDetails || '',
         medium: job.medium || 'Both',
         studentClass: job.student_class || job.studentClass || '',
@@ -135,6 +138,8 @@ class TuitionJobsService {
         experienceRequired: job.experience_required || job.experienceRequired || '',
         availability: job.availability || '',
         extraInformation: job.extra_information || job.extraInformation || '',
+        adminNote: job.admin_note || job.adminNote || '',
+        updateNotice: job.update_notice || job.updateNotice || '',
         status: job.status || 'active',
         urgent: job.urgent || false,
         createdAt: job.created_at || job.createdAt,
@@ -180,6 +185,8 @@ class TuitionJobsService {
         experienceRequired: job.experience_required || job.experienceRequired || '',
         availability: job.availability || '',
         extraInformation: job.extra_information || job.extraInformation || '',
+        adminNote: job.admin_note || job.adminNote || '',
+        updateNotice: job.update_notice || job.updateNotice || '',
         status: job.status || 'active',
         urgent: job.urgent || false,
         createdAt: job.created_at || job.createdAt,

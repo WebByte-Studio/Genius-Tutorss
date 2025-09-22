@@ -4,7 +4,7 @@ export const adminMenuItems: MenuItem[] = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    icon: 'BarChart3',
+    icon: 'Settings',
     permission: 'View Dashboard'
   },
   {
@@ -128,7 +128,7 @@ export const managerMenuItems: MenuItem[] = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    icon: 'BarChart3',
+    icon: 'Settings',
     permission: 'View Dashboard'
   },
   {

@@ -198,9 +198,9 @@ export const API_ENDPOINTS = {
     VERIFY: '/auth/verify',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
-    ADMIN_RESET_PASSWORD: '/auth/admin-reset-password',
-    ADMIN_LOGIN: '/auth/admin-login',
-    ADMIN_FORGOT_PASSWORD: '/auth/admin-forgot-password',
+    ADMIN_RESET_PASSWORD: '/auth/admin/reset-password',
+    ADMIN_LOGIN: '/auth/admin/login',
+    ADMIN_FORGOT_PASSWORD: '/auth/admin/forgot-password',
   },
   USERS: {
     PROFILE: '/users/profile',

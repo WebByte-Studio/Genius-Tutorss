@@ -64,7 +64,6 @@ export function useStudentDashboard() {
     studentGender: 'male',
     district: '',
     area: '',
-    postOffice: '',
     detailedLocation: '',
     category: '',
     selectedCategories: [],
@@ -183,7 +182,6 @@ export function useStudentDashboard() {
       studentGender: request.studentGender,
       district: request.district,
       area: request.area,
-      postOffice: request.postOffice || '',
       detailedLocation: request.detailedLocation,
       category: request.category,
       selectedCategories: request.selectedCategories || [],
@@ -561,7 +559,12 @@ export function useStudentDashboard() {
         const transformedTutors: Tutor[] = response.data.map((dbTutor: DBTutor) => ({
           id: dbTutor.id,
           name: dbTutor.full_name,
-          subject: dbTutor.subjects ? dbTutor.subjects.split(',')[0] : 'General',
+          subject: dbTutor.subjects 
+            ? (Array.isArray(dbTutor.subjects) 
+                ? dbTutor.subjects[0] 
+                : dbTutor.subjects.split(',')[0]
+              ) 
+            : 'General',
           area: dbTutor.location || '',
           gender: 'Male', // Default value as gender might not be available in DB
           rating: dbTutor.rating || 0,
@@ -711,7 +714,6 @@ export function useStudentDashboard() {
       studentGender: 'male',
       district: '',
       area: '',
-      postOffice: '',
       detailedLocation: '',
       category: '',
       selectedCategories: [],
@@ -770,7 +772,6 @@ export function useStudentDashboard() {
           studentGender: 'male',
           district: '',
           area: '',
-          postOffice: '',
           detailedLocation: '',
           category: '',
           selectedCategories: [],

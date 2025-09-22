@@ -37,7 +37,6 @@ export default function TutorRequestPage() {
     studentGender: 'male',
     district: '',
     area: '',
-    postOffice: '',
     detailedLocation: '',
     category: '',
     selectedCategories: [],
@@ -60,9 +59,8 @@ export default function TutorRequestPage() {
     tutoringType: 'Home Tutoring'
   });
 
-  // Available areas and post offices based on selected district
+  // Available areas based on selected district
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
-  const [availablePostOffices, setAvailablePostOffices] = useState<PostOffice[]>([]);
   
   // Taxonomy data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -152,49 +150,24 @@ export default function TutorRequestPage() {
     }
   }, [categories, toast]);
 
-  // Update available areas and post offices when district changes
+  // Update available areas when district changes
   useEffect(() => {
     if (formData.district) {
       const district = BANGLADESH_DISTRICTS_WITH_POST_OFFICES.find(d => d.id === formData.district);
       if (district) {
         setAvailableAreas(district.areas.map(area => area.name));
-        // Reset area and post office when district changes
+        // Reset area when district changes
         setFormData(prev => ({
           ...prev,
-          area: '',
-          postOffice: ''
+          area: ''
         }));
       } else {
         setAvailableAreas([]);
-        setAvailablePostOffices([]);
       }
     } else {
       setAvailableAreas([]);
-      setAvailablePostOffices([]);
     }
   }, [formData.district]);
-  
-  // Update available post offices when area changes
-  useEffect(() => {
-    if (formData.district && formData.area) {
-      const district = BANGLADESH_DISTRICTS_WITH_POST_OFFICES.find(d => d.id === formData.district);
-      if (district) {
-        const area = district.areas.find(a => a.name === formData.area);
-        if (area) {
-          setAvailablePostOffices(area.postOffices);
-          // Reset post office when area changes
-          setFormData(prev => ({
-            ...prev,
-            postOffice: ''
-          }));
-        } else {
-          setAvailablePostOffices([]);
-        }
-      }
-    } else {
-      setAvailablePostOffices([]);
-    }
-  }, [formData.district, formData.area]);
   
   // Fetch taxonomy data on component mount
   useEffect(() => {
@@ -309,7 +282,7 @@ export default function TutorRequestPage() {
       setIsSubmitting(true);
       
       // Validate form data
-      if (!formData.phoneNumber || !formData.district || !formData.area || !formData.postOffice) {
+      if (!formData.phoneNumber || !formData.district || !formData.area) {
         toast({
           title: 'Missing Information',
           description: 'Please fill in all required fields',
@@ -445,7 +418,6 @@ export default function TutorRequestPage() {
                 </div>
                 <h3 className="font-medium text-gray-800">Location</h3>
                 <p className="text-sm text-gray-600">{formData.area}, {formData.district}</p>
-                <p className="text-xs text-gray-500 mt-1">Post Office: {formData.postOffice}</p>
               </div>
               <div className="bg-white p-4 rounded-lg shadow-sm border border-green-100">
                 <div className="flex items-center justify-center mb-2">
@@ -510,7 +482,7 @@ export default function TutorRequestPage() {
         <div className="mb-4 sm:mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-black-900 mb-2 sm:mb-3">Are you looking for a tutor?</h1>
           <p className="text-gray-600 text-sm sm:text-base">
-            Then fill out the form and tell us which class/area you are looking for a tutor for. One of our representatives will contact you on the mobile number you provided within 24 hours of filling out and submitting the form.
+            Then fill out the form and tell us which class/area you are looking for a tutor for. 
           </p>
         </div>
       
@@ -521,64 +493,57 @@ export default function TutorRequestPage() {
               <div className="space-y-6 sm:space-y-8">
                 {/* Personal Information Section */}
                 <div className="space-y-4 sm:space-y-6">
-                  <div className="flex items-center mb-3 sm:mb-4">
-                    <User className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mr-2" />
-                    <h2 className="text-lg sm:text-xl font-semibold">Personal Information</h2>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="phoneNumber" className="text-sm">Phone Number <span className="text-red-500">*</span></Label>
                       <Input 
                         id="phoneNumber" 
                         value={formData.phoneNumber} 
                         onChange={(e) => handleChange('phoneNumber', e.target.value)}
-                        placeholder="Phone"
+                        placeholder="Phone Number *"
                         className="w-full h-10 sm:h-11"
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label className="text-sm">Student Gender <span className="text-red-500">*</span></Label>
-                      
-                      {/* Mobile Dropdown */}
-                      <div className="block sm:hidden">
-                        <Select 
-                          value={formData.studentGender} 
-                          onValueChange={(value) => handleChange('studentGender', value)}
-                        >
-                          <SelectTrigger className="h-10 sm:h-11">
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="both">Both</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      {/* Desktop Radio Buttons */}
-                      <div className="hidden sm:block">
-                        <RadioGroup 
-                          value={formData.studentGender} 
-                          onValueChange={(value) => handleChange('studentGender', value)}
-                          className="flex flex-row space-x-4"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="male" id="male" className="h-5 w-5" />
-                            <Label htmlFor="male" className="text-sm leading-tight">Male</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="female" id="female" className="h-5 w-5" />
-                            <Label htmlFor="female" className="text-sm leading-tight">Female</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="both" id="both" className="h-5 w-5" />
-                            <Label htmlFor="both" className="text-sm leading-tight">Both</Label>
-                          </div>
-                        </RadioGroup>
-                      </div>
+                      <Select 
+                        value={formData.studentGender} 
+                        onValueChange={(value) => handleChange('studentGender', value)}
+                      >
+                        <SelectTrigger className="h-10 sm:h-11">
+                          <SelectValue placeholder="Student Gender *" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="both">Both</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Input 
+                        id="detailedLocation" 
+                        value={formData.detailedLocation} 
+                        onChange={(e) => handleChange('detailedLocation', e.target.value)}
+                        placeholder="Detailed Location (Optional)"
+                        className="w-full h-10 sm:h-11"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Select 
+                        value={formData.tutorGenderPreference} 
+                        onValueChange={(value) => handleChange('tutorGenderPreference', value)}
+                      >
+                        <SelectTrigger className="h-10 sm:h-11">
+                          <SelectValue placeholder="Tutor Gender Preference" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="any">Any</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -587,18 +552,12 @@ export default function TutorRequestPage() {
 
                 {/* Location Information Section */}
                 <div className="space-y-4 sm:space-y-6">
-                  <div className="flex items-center mb-3 sm:mb-4">
-                    <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mr-2" />
-                    <h2 className="text-lg sm:text-xl font-semibold">Location Information</h2>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="district" className="text-sm">District <span className="text-red-500">*</span></Label>
                       <SearchableSelect
                         value={formData.district}
                         onValueChange={(value) => handleChange('district', value)}
-                        placeholder="Select district"
+                        placeholder="District *"
                         options={BANGLADESH_DISTRICTS_WITH_POST_OFFICES.map((district) => ({
                           value: district.id,
                           label: district.name
@@ -607,11 +566,10 @@ export default function TutorRequestPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="area" className="text-sm">Thana <span className="text-red-500">*</span></Label>
                       <SearchableSelect
                         value={formData.area}
                         onValueChange={(value) => handleChange('area', value)}
-                        placeholder="Select area"
+                        placeholder="Thana *"
                         options={availableAreas.map((area) => ({
                           value: area,
                           label: area
@@ -621,29 +579,38 @@ export default function TutorRequestPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="postOffice" className="text-sm">Post Office <span className="text-red-500">*</span></Label>
-                      <SearchableSelect
-                        value={formData.postOffice}
-                        onValueChange={(value) => handleChange('postOffice', value)}
-                        placeholder="Select post office"
-                        options={availablePostOffices.map((postOffice) => ({
-                          value: postOffice.name,
-                          label: `${postOffice.name} (${postOffice.postcode})`
-                        }))}
-                        disabled={!formData.area}
-                      />
+                      <Select 
+                        value={formData.medium} 
+                        onValueChange={(value) => handleChange('medium', value)}
+                      >
+                        <SelectTrigger className="h-10 sm:h-11">
+                          <SelectValue placeholder="Medium *" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mediumOptions.mediums.map((medium) => (
+                            <SelectItem key={medium.value} value={medium.value}>
+                              {medium.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="detailedLocation" className="text-sm">Detailed Location (Optional)</Label>
-                    <Textarea 
-                      id="detailedLocation" 
-                      value={formData.detailedLocation} 
-                      onChange={(e) => handleChange('detailedLocation', e.target.value)}
-                      placeholder="Enter detailed address, landmarks, etc."
-                      className="w-full min-h-[80px] sm:min-h-[100px]"
-                    />
+                    
+                    <div className="space-y-2">
+                      <Select 
+                        value={formData.tutoringType || 'Home Tutoring'} 
+                        onValueChange={(value) => handleChange('tutoringType', value)}
+                      >
+                        <SelectTrigger className="h-10 sm:h-11">
+                          <SelectValue placeholder="Tutoring Type *" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Home Tutoring">Home Tutoring</SelectItem>
+                          <SelectItem value="Online Tutoring">Online Tutoring</SelectItem>
+                          <SelectItem value="Both">Both</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
@@ -651,14 +618,8 @@ export default function TutorRequestPage() {
 
                 {/* Academic Information Section */}
                 <div className="space-y-4 sm:space-y-6">
-                  <div className="flex items-center mb-3 sm:mb-4">
-                    <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mr-2" />
-                    <h2 className="text-lg sm:text-xl font-semibold">Academic Information</h2>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="category" className="text-sm">Category <span className="text-red-500">*</span></Label>
                       <Select 
                         value="" 
                         onValueChange={(value) => {
@@ -669,7 +630,7 @@ export default function TutorRequestPage() {
                         disabled={isLoadingTaxonomy}
                       >
                         <SelectTrigger className="h-10 sm:h-11">
-                          <SelectValue placeholder="Select categories" />
+                          <SelectValue placeholder="Category *" />
                         </SelectTrigger>
                         <SelectContent>
                           {categories.filter(category => category && category.id).map((category) => (
@@ -698,7 +659,6 @@ export default function TutorRequestPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label className="text-sm">Subjects <span className="text-red-500">*</span></Label>
                       {isLoadingTaxonomy ? (
                         <div className="text-center py-4 text-sm">Loading subjects...</div>
                       ) : (
@@ -712,7 +672,7 @@ export default function TutorRequestPage() {
                           disabled={!formData.selectedCategories.length}
                         >
                           <SelectTrigger className="h-10 sm:h-11">
-                            <SelectValue placeholder="Select subjects" />
+                            <SelectValue placeholder="Subjects *" />
                           </SelectTrigger>
                           <SelectContent>
                             {subjects.filter(subject => subject && subject.id).map((subject) => (
@@ -742,7 +702,6 @@ export default function TutorRequestPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label className="text-sm">Class Levels <span className="text-red-500">*</span></Label>
                       {isLoadingTaxonomy ? (
                         <div className="text-center py-4 text-sm">Loading class levels...</div>
                       ) : (
@@ -756,7 +715,7 @@ export default function TutorRequestPage() {
                           disabled={!formData.selectedCategories.length}
                         >
                           <SelectTrigger className="h-10 sm:h-11">
-                            <SelectValue placeholder="Select classes" />
+                            <SelectValue placeholder="Class Levels *" />
                           </SelectTrigger>
                           <SelectContent>
                             {classLevels.filter(classLevel => classLevel && classLevel.id).map((classLevel) => (
@@ -784,57 +743,8 @@ export default function TutorRequestPage() {
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Tutoring Details Section */}
-                <div className="space-y-4 sm:space-y-6">
-                  <div className="flex items-center mb-3 sm:mb-4">
-                    <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mr-2" />
-                    <h2 className="text-lg sm:text-xl font-semibold">Tutoring Details</h2>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="medium" className="text-sm">Medium <span className="text-red-500">*</span></Label>
-                      <Select 
-                        value={formData.medium} 
-                        onValueChange={(value) => handleChange('medium', value)}
-                      >
-                        <SelectTrigger className="h-10 sm:h-11">
-                          <SelectValue placeholder="Select medium" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mediumOptions.mediums.map((medium) => (
-                            <SelectItem key={medium.value} value={medium.value}>
-                              {medium.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="tutoringType" className="text-sm">Tutoring Type <span className="text-red-500">*</span></Label>
-                      <Select 
-                        value={formData.tutoringType || 'Home Tutoring'} 
-                        onValueChange={(value) => handleChange('tutoringType', value)}
-                      >
-                        <SelectTrigger className="h-10 sm:h-11">
-                          <SelectValue placeholder="Select tutoring type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Home Tutoring">Home Tutoring</SelectItem>
-                          <SelectItem value="Online Tutoring">Online Tutoring</SelectItem>
-                          <SelectItem value="Both">Both</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="numberOfStudents" className="text-sm">Number of Students <span className="text-red-500">*</span></Label>
                       <Input 
                         id="numberOfStudents" 
                         type="number"
@@ -842,21 +752,25 @@ export default function TutorRequestPage() {
                         max="10"
                         value={formData.numberOfStudents} 
                         onChange={(e) => handleChange('numberOfStudents', parseInt(e.target.value) || 1)}
-                        placeholder="Number of students"
+                        placeholder="Number of Students *"
                         className="w-full h-11"
                       />
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                </div>
+
+                <Separator />
+
+                {/* Tutoring Details Section */}
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="tutoringDuration" className="text-sm">Tutoring Duration (Hours) <span className="text-red-500">*</span></Label>
                       <Select 
                         value={formData.tutoringDuration} 
                         onValueChange={(value) => handleChange('tutoringDuration', value)}
                       >
                         <SelectTrigger className="h-10 sm:h-11">
-                          <SelectValue placeholder="Select duration" />
+                          <SelectValue placeholder="Tutoring Duration (Hours) *" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="1:00">1 Hour</SelectItem>
@@ -871,13 +785,12 @@ export default function TutorRequestPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="tutoringDays" className="text-sm">Tutoring Days per Week <span className="text-red-500">*</span></Label>
                       <Select 
                         value={formData.tutoringDays.toString()} 
                         onValueChange={(value) => handleChange('tutoringDays', parseInt(value))}
                       >
                         <SelectTrigger className="h-10 sm:h-11">
-                          <SelectValue placeholder="Select days per week" />
+                          <SelectValue placeholder="Tutoring Days per Week *" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="1">1 Day</SelectItem>
@@ -890,132 +803,75 @@ export default function TutorRequestPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    
                     <div className="space-y-2">
-                      <Label htmlFor="tutoringTime" className="text-sm">Tutoring Time <span className="text-red-500">*</span></Label>
                       <Input 
                         id="tutoringTime" 
                         type="time"
                         value={formData.tutoringTime} 
                         onChange={(e) => handleChange('tutoringTime', e.target.value)}
+                        placeholder="Tutoring Time *"
                         className="w-full h-10 sm:h-11"
                       />
                     </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Preferences Section */}
-                <div className="space-y-4 sm:space-y-6">
-                  <div className="flex items-center mb-3 sm:mb-4">
-                    <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mr-2" />
-                    <h2 className="text-lg sm:text-xl font-semibold">Preferences</h2>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-sm">Tutor Gender Preference</Label>
-                      
-                      {/* Mobile Dropdown */}
-                      <div className="block sm:hidden">
-                        <Select 
-                          value={formData.tutorGenderPreference} 
-                          onValueChange={(value) => handleChange('tutorGenderPreference', value)}
-                        >
-                          <SelectTrigger className="h-10 sm:h-11">
-                            <SelectValue placeholder="Select preference" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="any">Any</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      {/* Desktop Radio Buttons */}
-                      <div className="hidden sm:block">
-                        <RadioGroup 
-                          value={formData.tutorGenderPreference} 
-                          onValueChange={(value) => handleChange('tutorGenderPreference', value)}
-                          className="flex flex-col space-y-2"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="male" id="pref-male" className="h-5 w-5" />
-                            <Label htmlFor="pref-male" className="text-sm leading-tight">Male</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="female" id="pref-female" className="h-5 w-5" />
-                            <Label htmlFor="pref-female" className="text-sm leading-tight">Female</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="any" id="pref-any" className="h-5 w-5" />
-                            <Label htmlFor="pref-any" className="text-sm leading-tight">Any</Label>
-                          </div>
-                        </RadioGroup>
-                      </div>
-                    </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="salaryMin" className="text-sm">Minimum Salary <span className="text-red-500">*</span></Label>
                       <Input 
                         id="salaryMin" 
                         type="number"
                         value={formData.salaryRange.min} 
                         onChange={(e) => handleChange('salaryRange', { ...formData.salaryRange, min: parseInt(e.target.value) || 0 })}
-                        placeholder="Minimum salary"
+                        placeholder="Minimum Salary *"
                         className="w-full h-10 sm:h-11"
                       />
                     </div>
-                    
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="salaryMax" className="text-sm">Maximum Salary <span className="text-red-500">*</span></Label>
                       <Input 
                         id="salaryMax" 
                         type="number"
                         value={formData.salaryRange.max} 
                         onChange={(e) => handleChange('salaryRange', { ...formData.salaryRange, max: parseInt(e.target.value) || 0 })}
-                        placeholder="Maximum salary"
+                        placeholder="Maximum Salary *"
                         className="w-full h-10 sm:h-11"
                       />
                     </div>
+                    
+                    <div className="space-y-2">
+                      <Textarea 
+                        id="extraInformation" 
+                        value={formData.extraInformation} 
+                        onChange={(e) => handleChange('extraInformation', e.target.value)}
+                        placeholder="Additional Information (Optional)"
+                        className="w-full min-h-[80px] sm:min-h-[100px]"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2 flex items-center justify-center">
+                      <div className="flex items-center justify-between w-full">
+                        <Label htmlFor="isSalaryNegotiable" className="text-sm leading-tight">Salary is Negotiable</Label>
+                        <Switch 
+                          id="isSalaryNegotiable" 
+                          checked={formData.isSalaryNegotiable}
+                          onCheckedChange={(checked) => handleChange('isSalaryNegotiable', checked)}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Button 
+                        type="button" 
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base w-full h-10 sm:h-11"
+                      >
+                        {isSubmitting ? 'Submitting...' : 'Submit'}
+                        {!isSubmitting && <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 ml-2" />}
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="isSalaryNegotiable" className="text-sm leading-tight">Salary is Negotiable</Label>
-                    <Switch 
-                      id="isSalaryNegotiable" 
-                      checked={formData.isSalaryNegotiable}
-                      onCheckedChange={(checked) => handleChange('isSalaryNegotiable', checked)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="extraInformation" className="text-sm">Additional Information (Optional)</Label>
-                    <Textarea 
-                      id="extraInformation" 
-                      value={formData.extraInformation} 
-                      onChange={(e) => handleChange('extraInformation', e.target.value)}
-                      placeholder="Any specific requirements or information you want to share with tutors"
-                      className="w-full min-h-[80px] sm:min-h-[100px]"
-                    />
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <div className="flex justify-center pt-4 sm:pt-6">
-                  <Button 
-                    type="button" 
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg w-full sm:w-auto"
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Submit Request'}
-                    {!isSubmitting && <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 ml-2" />}
-                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -1023,29 +879,29 @@ export default function TutorRequestPage() {
         </div>
 
         {/* HELP & INFO Section */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 max-w-sm">
           <Card className="w-full shadow-lg border-gray-200 h-fit bg-white">
-            <CardHeader className="bg-white p-4 sm:p-6">
-              <CardTitle className="text-lg sm:text-xl font-bold text-black-900 text-center">HELP & INFO</CardTitle>
+            <CardHeader className="bg-white p-3 sm:p-4">
+              <CardTitle className="text-base sm:text-lg font-bold text-black-900 text-center">HELP & INFO</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6">
-              <div className="space-y-4 sm:space-y-6 text-center">
-                <div className="space-y-4 sm:space-y-6">
-                  <div className="space-y-3 sm:space-y-4">
+            <CardContent className="p-3 sm:p-4">
+              <div className="space-y-3 sm:space-y-4 text-center">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="space-y-2 sm:space-y-3">
                     <div>
-                      <h4 className="font-bold text-black-900 mb-2 text-sm sm:text-base">
+                      <h4 className="font-bold text-black-900 mb-1 text-xs sm:text-sm">
                         Q. If i cant get the desired tutor ?
                       </h4>
-                      <p className="text-gray-600 text-xs sm:text-sm">
+                      <p className="text-gray-600 text-xs">
                         Just fill up the request tutor form and send us. We will try to find your desired tutor.
                       </p>
                     </div>
                     
                     <div>
-                      <h4 className="font-bold text-black-900 mb-2 text-sm sm:text-base">
+                      <h4 className="font-bold text-black-900 mb-1 text-xs sm:text-sm">
                         Q. what will happen after fill the forms ?
                       </h4>
-                      <p className="text-gray-600 text-xs sm:text-sm">
+                      <p className="text-gray-600 text-xs">
                         After fill up the form the information will be sent to tutorsheba support team. They will review/ verify the info and will publish on the available tuitions section.
                       </p>
                     </div>

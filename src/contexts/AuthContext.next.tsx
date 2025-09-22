@@ -8,7 +8,7 @@ interface AuthContextType {
   profile: any | null;
   signIn: (phone: string, password: string) => Promise<void>;
   adminSignIn: (phone: string, password: string) => Promise<void>;
-  signUp: (phone: string, password: string, userData: any) => Promise<void>;
+  signUp: (phone: string, password: string, userData: any) => Promise<{ requiresEmailVerification?: boolean; token?: string; user?: any }>;
   signOut: () => Promise<void>;
   resetPassword: (phone: string) => Promise<any>;
   adminResetPassword: (phone: string) => Promise<any>;
@@ -16,6 +16,8 @@ interface AuthContextType {
   adminVerifyResetCode: (phone: string, token: string, password: string) => Promise<any>;
   redirectToDashboard: (user: any) => void;
   updateUserProfile?: (updatedUser: any) => void;
+  setUser: (user: any) => void;
+  setProfile: (profile: any) => void;
   loading: boolean;
 }
 
@@ -144,13 +146,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Registration failed');
-      setAuthToken(data.data.token);
-      localStorage.setItem('user', JSON.stringify(data.data.user));
-      setUser(data.data.user);
-      setProfile(data.data.user); // Set profile to user data
       
-      // Redirect to appropriate dashboard based on role
-      redirectToDashboard(data.data.user);
+      // Check if email verification is required
+      if (data.data.requiresEmailVerification) {
+        // Don't set user in context until email is verified
+        // Just return the user data for the verification process
+        return {
+          requiresEmailVerification: true,
+          user: data.data.user
+        };
+      }
+      
+      // If no email verification required, proceed with normal flow
+      if (data.data.token) {
+        setAuthToken(data.data.token);
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+        setUser(data.data.user);
+        setProfile(data.data.user); // Set profile to user data
+        
+        // Redirect to appropriate dashboard based on role
+        redirectToDashboard(data.data.user);
+      }
+      
+      return {
+        requiresEmailVerification: data.data.requiresEmailVerification || false,
+        token: data.data.token,
+        user: data.data.user
+      };
     } finally {
       setLoading(false);
     }
@@ -248,6 +270,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         adminVerifyResetCode,
         redirectToDashboard,
         updateUserProfile,
+        setUser,
+        setProfile,
         loading,
       }}
     >

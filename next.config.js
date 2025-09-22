@@ -1,19 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export', // Enable static export
-  trailingSlash: true, // Required for static export
-  distDir: 'out', // Output directory
+  // Standard Next.js configuration
   images: {
-    unoptimized: true, // Required for static export
+    domains: ['localhost', 'backend.geniustutorss.com'],
   },
   env: {
-    NEXT_PUBLIC_STATIC_EXPORT: 'true',
+    NEXT_PUBLIC_STATIC_EXPORT: 'false',
   },
-  // Disable server-side features for static export
+  // Enable server-side features
   experimental: {
     serverComponentsExternalPackages: [],
   },
-  // Webpack configuration for client-side only
+  // Webpack configuration
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -52,35 +50,37 @@ const nextConfig = {
     }
     return config;
   },
-  // async rewrites() {
-  //   return [
-  //     {
-  //       source: '/api/:path*',
-  //       destination: `${process.env.NEXT_PUBLIC_API_BASE_URL}/:path*`,
-  //     },
-  //   ];
-  // },
-  // async headers() {
-  //   return [
-  //     {
-  //       source: '/(.*)',
-  //       headers: [
-  //         {
-  //           key: 'X-Frame-Options',
-  //           value: 'DENY',
-  //         },
-  //         {
-  //           key: 'X-Content-Type-Options',
-  //           value: 'nosniff',
-  //         },
-  //         {
-  //           key: 'Referrer-Policy',
-  //           value: 'origin-when-cross-origin',
-  //         },
-  //       ],
-  //     },
-  //   ];
-  // },
+  // API rewrites for development
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend.geniustutorss.com/api'}/:path*`,
+      },
+    ];
+  },
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

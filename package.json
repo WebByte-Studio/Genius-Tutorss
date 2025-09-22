@@ -5,6 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:both": "concurrently \"npm run dev:backend\" \"npm run dev\"",
     "build": "next build",
     "build:static": "next build",
     "build:production": "next build",
@@ -62,6 +64,7 @@
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^10.16.4",
     "input-otp": "^1.4.2",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.292.0",
     "next": "14.0.3",
     "next-themes": "^0.4.6",
@@ -70,6 +73,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.47.0",
     "react-hot-toast": "^2.4.1",
+    "react-leaflet": "^5.0.0",
     "react-resizable-panels": "^3.0.5",
     "react-slick": "^0.29.0",
     "recharts": "^2.8.0",
@@ -84,6 +88,7 @@
   "devDependencies": {
     "@types/react-slick": "^0.23.10",
     "autoprefixer": "^10.4.16",
+    "concurrently": "^9.2.1",
     "eslint": "^8.52.0",
     "eslint-config-next": "14.0.3",
     "postcss": "^8.4.31",

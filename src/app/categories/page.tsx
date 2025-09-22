@@ -7,20 +7,21 @@ import { useAuth } from "@/contexts/AuthContext.next";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { categoryService, CategoryData } from "@/services/categoryService";
 
 export default function CategoriesPage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
-  const [taxonomyData, setTaxonomyData] = useState<any>(null);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredCategories, setFilteredCategories] = useState<any[]>([]);
+  const [filteredCategories, setFilteredCategories] = useState<CategoryData[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Fetch taxonomy data function
-  const fetchTaxonomyData = useCallback(async (isRefresh = false) => {
+  // Fetch categories data function
+  const fetchCategoriesData = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) {
         setIsRefreshing(true);
@@ -29,29 +30,12 @@ export default function CategoriesPage() {
       }
       setError(null);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api'}/website/taxonomy`, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        setTaxonomyData(result.data);
-        setFilteredCategories(result.data.categories);
-        setLastUpdated(new Date());
-      } else {
-        throw new Error(result.error || 'Failed to fetch taxonomy data');
-      }
+      const data = await categoryService.getPopularCategories();
+      setCategories(data);
+      setFilteredCategories(data);
+      setLastUpdated(new Date());
     } catch (error) {
-      console.error('Error fetching taxonomy data:', error);
+      console.error('Error fetching categories data:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch categories');
     } finally {
       setIsLoading(false);
@@ -61,14 +45,14 @@ export default function CategoriesPage() {
 
   // Auto-refresh every 30 seconds for real-time updates
   useEffect(() => {
-    fetchTaxonomyData();
+    fetchCategoriesData();
 
     const interval = setInterval(() => {
-      fetchTaxonomyData(true);
+      fetchCategoriesData(true);
     }, 30 * 1000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [fetchTaxonomyData]);
+  }, [fetchCategoriesData]);
 
   useEffect(() => {
     // Only redirect student and tutor users, allow admin users to access categories page
@@ -83,14 +67,13 @@ export default function CategoriesPage() {
 
   // Real-time search functionality
   useEffect(() => {
-    if (taxonomyData && taxonomyData.categories) {
-      const filtered = taxonomyData.categories.filter((category: any) =>
-        category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        category.description.toLowerCase().includes(searchTerm.toLowerCase())
+    if (categories && categories.length > 0) {
+      const filtered = categories.filter((category) =>
+        category.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredCategories(filtered);
     }
-  }, [searchTerm, taxonomyData]);
+  }, [searchTerm, categories]);
 
   // Show loading while data is being fetched
   if (isLoading) {
@@ -104,8 +87,8 @@ export default function CategoriesPage() {
     );
   }
 
-  // Add a check to ensure taxonomyData is loaded
-  if (!taxonomyData || !taxonomyData.categories) {
+  // Add a check to ensure categories are loaded
+  if (!categories || categories.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
@@ -113,7 +96,7 @@ export default function CategoriesPage() {
           <h2 className="text-xl font-semibold text-gray-800 mb-2">No Categories Found</h2>
           <p className="text-gray-600 mb-4">Unable to load categories from the database.</p>
           <button
-            onClick={() => fetchTaxonomyData()}
+            onClick={() => fetchCategoriesData()}
             className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
           >
             Try Again
@@ -137,7 +120,7 @@ export default function CategoriesPage() {
   };
 
   const handleRefresh = () => {
-    fetchTaxonomyData(true);
+    fetchCategoriesData(true);
   };
 
   // Only show loading spinner for student and tutor users, not admin users
@@ -149,33 +132,6 @@ export default function CategoriesPage() {
     );
   }
 
-  const getCategoryIcon = (categoryName: string) => {
-    const iconMap: { [key: string]: string } = {
-      'Academic Studies': '📚',
-      'Language Learning': '🗣️',
-      'Technology & Programming': '💻',
-      'Creative Arts': '🎨',
-      'Test Preparation': '🎓',
-      'Professional Skills': '💼',
-      'Religious Studies': '🕌',
-      'Health & Fitness': '💪'
-    };
-    return iconMap[categoryName] || '📖';
-  };
-
-  const getCategoryColor = (categoryId: number) => {
-    const colors = [
-      'text-purple-600',
-      'text-blue-600',
-      'text-green-600',
-      'text-red-600',
-      'text-orange-600',
-      'text-indigo-600',
-      'text-pink-600',
-      'text-teal-600'
-    ];
-    return colors[categoryId % colors.length];
-  };
 
   return (
     <div className="flex min-h-screen flex-col w-full overflow-x-hidden">
@@ -232,11 +188,37 @@ export default function CategoriesPage() {
               </div>
             </div>
 
-            {/* Categories Count */}
-            <div className="text-center mb-6">
-              <p className="text-gray-600">
-                Showing {filteredCategories.length} of {taxonomyData.categories.length} categories
-              </p>
+            {/* Real-time info and refresh button */}
+            <div className="flex justify-between items-center mb-6 max-w-7xl mx-auto">
+              <div className="text-center">
+                <p className="text-gray-600">
+                  Showing {filteredCategories.length} of {categories.length} categories
+                </p>
+                {lastUpdated && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Last updated: {lastUpdated.toLocaleTimeString()}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isRefreshing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Refreshing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Categories Grid */}
@@ -253,8 +235,8 @@ export default function CategoriesPage() {
                   </div>
                   
                   {/* Category icon */}
-                  <div className={`${getCategoryColor(category.id)} mb-3 flex justify-center text-2xl`}>
-                    {getCategoryIcon(category.name)}
+                  <div className={`${category.color} mb-3 flex justify-center text-2xl`}>
+                    {category.icon}
                   </div>
                   
                   {/* Category name */}
@@ -262,9 +244,14 @@ export default function CategoriesPage() {
                     {category.name}
                   </h3>
                   
-                  {/* Subjects count */}
-                  <div className="text-xs text-gray-400 text-center mb-2">
-                    {category.subjects?.length || 0} subjects
+                  {/* Tuition count */}
+                  <div className="text-center mb-2">
+                    <p className="text-primary font-bold text-lg">
+                      {category.tuitions}
+                    </p>
+                    <p className="text-gray-600 text-xs">
+                      Tuitions
+                    </p>
                   </div>
                   
                   {/* Click indicator */}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, User, Calendar, Clock, Users, Share2, Map, AlertCircle } from "lucide-react";
+import { ArrowLeft, MapPin, User, Calendar, Clock, Users, Share2, Map, AlertCircle, Building, GraduationCap, Compass, Copy, MessageCircle, Facebook, Twitter } from "lucide-react";
 import { tuitionJobsService, TuitionJob } from "@/services/tuitionJobsService";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +29,109 @@ export default function TuitionJobDetailsClient({ jobId }: TuitionJobDetailsClie
   const [existingApplication, setExistingApplication] = useState<any>(null);
   const [checkingApplication, setCheckingApplication] = useState(false);
   const [resettingApplication, setResettingApplication] = useState(false);
+
+  // Share functionality
+  const getShareUrl = () => {
+    if (typeof window !== 'undefined') {
+      return window.location.href;
+    }
+    return '';
+  };
+
+  const getShareText = () => {
+    if (!job) return '';
+    return `Tutor Needed For ${job.subject} - ${job.district}, ${job.area}. Apply now!`;
+  };
+
+  const handleWhatsAppShare = () => {
+    const url = getShareUrl();
+    const text = getShareText();
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`;
+    window.open(whatsappUrl, '_blank');
+    toast({
+      title: 'Shared on WhatsApp',
+      description: 'Job posting shared successfully on WhatsApp!',
+    });
+  };
+
+  const handleFacebookShare = () => {
+    const url = getShareUrl();
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    window.open(facebookUrl, '_blank', 'width=600,height=400');
+    toast({
+      title: 'Shared on Facebook',
+      description: 'Job posting shared successfully on Facebook!',
+    });
+  };
+
+  const handleTwitterShare = () => {
+    const url = getShareUrl();
+    const text = getShareText();
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(twitterUrl, '_blank', 'width=600,height=400');
+    toast({
+      title: 'Shared on Twitter',
+      description: 'Job posting shared successfully on Twitter!',
+    });
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      const url = getShareUrl();
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: 'Link Copied',
+        description: 'Job posting link copied to clipboard!',
+      });
+    } catch (error) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = getShareUrl();
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      toast({
+        title: 'Link Copied',
+        description: 'Job posting link copied to clipboard!',
+      });
+    }
+  };
+
+  // Location and Directions functionality
+  const getLocationQuery = () => {
+    if (!job) return '';
+    return `${job.district}, ${job.area}${job.postOffice ? `, ${job.postOffice}` : ''}, Bangladesh`;
+  };
+
+  const handleDirections = () => {
+    const location = getLocationQuery();
+    const encodedLocation = encodeURIComponent(location);
+    
+    // Try to get user's current location for better directions
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}&travelmode=driving`;
+          window.open(directionsUrl, '_blank');
+        },
+        () => {
+          // Fallback if geolocation fails
+          const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}&travelmode=driving`;
+          window.open(directionsUrl, '_blank');
+        }
+      );
+    } else {
+      // Fallback for browsers that don't support geolocation
+      const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}&travelmode=driving`;
+      window.open(directionsUrl, '_blank');
+    }
+  };
+
+  const handleLocation = () => {
+    setShowMap(true);
+  };
 
   const fetchJobDetails = useCallback(async (jobId: string) => {
     setIsLoading(true);
@@ -194,125 +297,161 @@ export default function TuitionJobDetailsClient({ jobId }: TuitionJobDetailsClie
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      {/* Header */}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Main Content Area */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="p-8">
+            {/* Header Section */}
       <div className="mb-8">
-        <Button 
-          variant="ghost" 
-          onClick={() => router.back()}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Jobs
-        </Button>
-        
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Tuition Job for {job.studentClass}</h1>
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span>{job.studentName}</span>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                Tutor Needed For {job.subject}
+              </h1>
+              <div className="flex items-center gap-6 text-sm text-gray-600 mb-4">
+                <span>Job ID: {job.id.slice(0, 8)}</span>
+                <span>Posted at: {new Date(job.createdAt).toLocaleDateString()}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span>{job.district}, {job.area}</span>
+              
+              {/* Location with Map Pin */}
+              <div className="flex flex-col items-center mb-8">
+                <MapPin className="h-8 w-8 text-red-500 mb-2" />
+                <h2 className="text-2xl font-bold text-gray-800">
+                  {job.district}, {job.area}
+                </h2>
               </div>
+            </div>
+
+            {/* Two Column Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column - Job Details */}
+              <div className="lg:col-span-2">
+                {/* Job Specification Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  {/* Row 1 */}
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                    <Building className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Medium</p>
+                      <p className="font-semibold text-gray-800">{job.tutoringType}</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setShowMap(!showMap)}
-            >
-              <Map className="h-4 w-4 mr-2" />
-              {showMap ? 'Hide Map' : 'Show Map'}
-            </Button>
-            
-            <Button variant="outline">
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                    <GraduationCap className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Class</p>
+                      <p className="font-semibold text-gray-800">{job.studentClass}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                    <Users className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Student Gender</p>
+                      <p className="font-semibold text-gray-800">{job.studentGender}</p>
           </div>
+                  </div>
+
+                  {/* Row 2 */}
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                    <User className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Preferred Tutor</p>
+                      <p className="font-semibold text-gray-800">{job.preferredTeacherGender}</p>
         </div>
       </div>
 
-      {/* Job Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Job Description */}
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Job Description</h2>
-              <div className="prose max-w-none">
-                <p className="text-gray-700 leading-relaxed">{job.extraInformation}</p>
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                    <Calendar className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Tutoring Days</p>
+                      <p className="font-semibold text-gray-800">{job.daysPerWeek} Days/Week</p>
+                    </div>
               </div>
-            </CardContent>
-          </Card>
+                  
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                    <Clock className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Tutoring Time</p>
+                      <p className="font-semibold text-gray-800">{job.tutoringTime || 'Negotiable'}</p>
+                    </div>
+                </div>
 
-          {/* Requirements */}
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Requirements</h2>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-blue-600" />
-                  <span className="text-gray-700">Students: {job.numberOfStudents} ({job.studentGender})</span>
+                  {/* Row 3 */}
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                    <Users className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">No of Student</p>
+                      <p className="font-semibold text-gray-800">{job.numberOfStudents || 1}</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                  <span className="text-gray-700">Days per week: {job.daysPerWeek}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  <span className="text-gray-700">Time: {job.tutoringTime}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-blue-600" />
-                  <span className="text-gray-700">Type: {job.tutoringType}</span>
+                  
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                    <GraduationCap className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Subject</p>
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        {job.subject}
+                      </Badge>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+                  
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                    <Clock className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Salary</p>
+                      <p className="font-semibold text-green-600">
+                        {job.salaryRangeMin.toLocaleString()} - {job.salaryRangeMax.toLocaleString()} Tk/Month
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-          {/* Schedule & Location */}
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Schedule & Location</h2>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-green-600" />
-                  <span className="text-gray-700">Days: {job.daysPerWeek} days per week</span>
+                {/* Other Requirements */}
+                <div className="mb-8">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1">
+                      <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 mb-2">Other Requirements:</p>
+                      <p className="text-gray-700 leading-relaxed">
+                        {job.extraInformation || 'Highly experienced tutors are requested to apply. Loc: ' + job.district + ', ' + job.area}
+                      </p>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-green-600" />
-                  <span className="text-gray-700">Time: {job.tutoringTime}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-green-600" />
-                  <span className="text-gray-700">Location: {job.locationDetails}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Application Status */}
-          {user && user.role === 'tutor' && (
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-4">Application Status</h3>
-                {checkingApplication ? (
+                {/* Admin Note Section */}
+                {job.adminNote && (
+                  <div className="mb-8">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+                          <AlertCircle className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-blue-900 mb-2">Administrator Note</h4>
+                          <p className="text-sm text-blue-800 whitespace-pre-wrap leading-relaxed">
+                            {job.adminNote}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Apply Button */}
+                <div className="mb-8">
+                  {user && user.role === 'tutor' ? (
+                    checkingApplication ? (
                   <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto"></div>
                     <p className="text-sm text-gray-600 mt-2">Checking...</p>
                   </div>
                 ) : existingApplication ? (
                   <div className="space-y-3">
-                    <Badge variant={existingApplication.status === 'accepted' ? 'default' : 'secondary'}>
+                        <Badge variant={existingApplication.status === 'accepted' ? 'default' : 'secondary'} className="bg-green-100 text-green-800">
                       {existingApplication.status}
                     </Badge>
                     <p className="text-sm text-gray-600">
@@ -344,62 +483,124 @@ export default function TuitionJobDetailsClient({ jobId }: TuitionJobDetailsClie
                   <Button 
                     onClick={handleApplyForJob}
                     disabled={applying}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    {applying ? 'Applying...' : 'Apply for this Job'}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Job Summary */}
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-4">Job Summary</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Salary</span>
-                  <span className="font-semibold text-green-600">
-                    ৳{job.salaryRangeMin} - ৳{job.salaryRangeMax}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Subject</span>
-                  <span className="font-semibold">{job.subject}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Posted</span>
-                  <span className="font-semibold">
-                    {new Date(job.createdAt).toLocaleDateString()}
-                  </span>
+                        className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg font-semibold"
+                      >
+                        <MessageCircle className="h-5 w-5 mr-2" />
+                        {applying ? 'Applying...' : 'Login then apply this job'}
+                      </Button>
+                    )
+                  ) : (
+                    <LoginDialog defaultRole="tutor">
+                      <Button 
+                        className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg font-semibold"
+                      >
+                        <MessageCircle className="h-5 w-5 mr-2" />
+                        Login then apply this job
+                      </Button>
+                    </LoginDialog>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Right Column - Actions and Sharing */}
+              <div className="lg:col-span-1 space-y-6">
+                {/* Navigation Buttons */}
+                <div className="space-y-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 transition-colors"
+                    onClick={handleDirections}
+                    title="Get directions to this location"
+                  >
+                    <Compass className="h-4 w-4 mr-2" />
+                    Directions
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-green-50 hover:bg-green-100 text-green-700 border-green-200 transition-colors"
+                    onClick={handleLocation}
+                    title="View location on map"
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Location
+                  </Button>
+                </div>
+
+                {/* Share Post Section */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-gray-800 mb-3">Share this post:</h3>
+                  <div className="flex space-x-3">
+                    <Button 
+                      size="sm" 
+                      className="w-10 h-10 p-0 bg-green-500 hover:bg-green-600 transition-colors"
+                      onClick={handleWhatsAppShare}
+                      title="Share on WhatsApp"
+                    >
+                      <MessageCircle className="h-4 w-4 text-white" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="w-10 h-10 p-0 bg-blue-600 hover:bg-blue-700 transition-colors"
+                      onClick={handleFacebookShare}
+                      title="Share on Facebook"
+                    >
+                      <Facebook className="h-4 w-4 text-white" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="w-10 h-10 p-0 bg-sky-500 hover:bg-sky-600 transition-colors"
+                      onClick={handleTwitterShare}
+                      title="Share on Twitter"
+                    >
+                      <Twitter className="h-4 w-4 text-white" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="w-10 h-10 p-0 bg-red-500 hover:bg-red-600 transition-colors"
+                      onClick={handleCopyLink}
+                      title="Copy Link"
+                    >
+                      <Copy className="h-4 w-4 text-white" />
+                    </Button>
+                </div>
+                </div>
+              </div>
         </div>
       </div>
 
-      {/* Map */}
-      {showMap && (
-        <Card className="mt-8">
-          <CardContent className="pt-6">
-            <h3 className="font-semibold mb-4">Location</h3>
-            <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-600">Map view for {job.district}, {job.area}</p>
-                <p className="text-sm text-gray-500">Interactive map integration can be added here</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        </div>
 
-      {/* Login Dialog */}
-      <LoginDialog>
-        <Button variant="outline">Open Login</Button>
-      </LoginDialog>
+        {/* Location Map Modal */}
+        {showMap && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg w-[80vw] h-[70vh] max-w-5xl overflow-hidden relative">
+              {/* Close Button */}
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowMap(false)}
+                className="absolute top-3 right-3 z-10 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full w-8 h-8 p-0 bg-white shadow-md"
+              >
+                ×
+              </Button>
+              
+              {/* Google Maps Embed */}
+              <iframe
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(getLocationQuery())}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="rounded-lg"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

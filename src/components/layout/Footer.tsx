@@ -107,7 +107,7 @@ export const Footer = () => {
               </li>
               <li>
                 <Link href="/premium-tutors" className="text-sm sm:text-base text-muted-foreground hover:text-primary transition-colors">
-                  Premium Tutors
+                  Tutor Hub
                 </Link>
               </li>
               <li>

@@ -49,6 +49,8 @@ interface TuitionRequest {
   experienceRequired?: string;
   availability?: string;
   extraInformation?: string;
+  adminNote?: string;
+  updateNotice?: string;
   status: 'Active' | 'Inactive' | 'Completed' | 'Assign';
   urgent?: boolean;
   createdAt: string;
@@ -193,6 +195,8 @@ export function TuitionRequestsSection() {
             experienceRequired: req.experience_required || '',
             availability: req.availability || '',
             extraInformation: req.extra_information || '',
+            adminNote: req.admin_note || '',
+            updateNotice: req.update_notice || '',
             status: formattedStatus as 'Active' | 'Inactive' | 'Completed' | 'Assign',
             urgent: req.urgent === 1 || req.urgent === true,
             createdAt,
@@ -281,9 +285,31 @@ export function TuitionRequestsSection() {
     try {
       console.log('Fetching referring tutor info for ID:', tutorId);
       
-      // First try to get tutor information from users table
+      // First try to get tutor information from tutor service
       try {
-        const response = await fetch(`/api/users/${tutorId}`);
+        const tutorResponse = await tutorService.getTutorById(tutorId);
+        console.log('Tutor service response:', tutorResponse);
+        
+        if (tutorResponse.success && tutorResponse.data) {
+          const result = {
+            name: tutorResponse.data.full_name || 'Unknown Tutor',
+            email: 'Email not available' // Tutor service doesn't provide email
+          };
+          console.log('Returning tutor info from tutor service:', result);
+          return result;
+        }
+      } catch (tutorServiceError) {
+        console.log('Tutor service failed, trying users API:', tutorServiceError);
+      }
+      
+      // Fallback: try to get tutor information from users table
+      try {
+        const response = await fetch(`/api/users/${tutorId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
         console.log('Users API response status:', response.status);
         
         if (response.ok) {
@@ -300,24 +326,7 @@ export function TuitionRequestsSection() {
           }
         }
       } catch (usersApiError) {
-        console.log('Users API failed, trying tutor service:', usersApiError);
-      }
-      
-      // Fallback: try to get tutor information from tutor service
-      try {
-        const tutorResponse = await tutorService.getTutorById(tutorId);
-        console.log('Tutor service response:', tutorResponse);
-        
-        if (tutorResponse.success && tutorResponse.data) {
-          const result = {
-            name: tutorResponse.data.full_name || 'Unknown Tutor',
-            email: 'Email not available' // Tutor service doesn't provide email
-          };
-          console.log('Returning tutor info from tutor service:', result);
-          return result;
-        }
-      } catch (tutorServiceError) {
-        console.log('Tutor service also failed:', tutorServiceError);
+        console.log('Users API also failed:', usersApiError);
       }
       
       console.log('All methods failed to fetch tutor info');
@@ -523,7 +532,7 @@ export function TuitionRequestsSection() {
   // Open edit request modal
   const openEditRequestModal = (request: TuitionRequest) => {
     setSelectedRequest(request);
-    setEditFormData({
+    const formData = {
       studentName: request.studentName,
       district: request.district,
       area: request.area,
@@ -534,13 +543,22 @@ export function TuitionRequestsSection() {
         min: request.salaryRange.min,
         max: request.salaryRange.max
       },
+      adminNote: request.adminNote || '',
+      updateNotice: request.updateNotice || '',
       status: request.status
-    });
+    };
+    console.log('Initializing edit form with data:', formData);
+    console.log('Request updateNotice:', request.updateNotice, 'Type:', typeof request.updateNotice);
+    setEditFormData(formData);
     setShowEditModal(true);
   };
 
   // Handle form field changes
   const handleEditFormChange = (field: string, value: any) => {
+    console.log('Form field changed:', field, 'Value:', value, 'Type:', typeof value);
+    if (field === 'updateNotice') {
+      console.log('updateNotice field changed to:', value);
+    }
     setEditFormData(prev => ({
       ...prev,
       [field]: value
@@ -572,12 +590,16 @@ export function TuitionRequestsSection() {
           subject: editFormData.subject,
           studentClass: editFormData.studentClass,
           tutoringType: editFormData.tutoringType as 'Home Tutoring' | 'Online Tutoring' | 'Both' | undefined,
-          salaryRange: editFormData.salaryRange
+          salaryRange: editFormData.salaryRange,
+          adminNote: editFormData.adminNote,
+          updateNotice: editFormData.updateNotice
       };
       
       console.log('Updating tuition request with payload:', updatePayload);
       console.log('Tutoring type value:', editFormData.tutoringType, 'Type:', typeof editFormData.tutoringType);
       console.log('Selected request current tutoring type:', selectedRequest.tutoringType);
+      console.log('updateNotice value:', editFormData.updateNotice, 'Type:', typeof editFormData.updateNotice);
+      console.log('adminNote value:', editFormData.adminNote, 'Type:', typeof editFormData.adminNote);
       
       const response = await tutorRequestService.updateTutorRequest(
         selectedRequest.id,
@@ -694,8 +716,12 @@ export function TuitionRequestsSection() {
       }
       
       // Check if tutor teaches the required subject
-      const tutorSubjects = (tutor.subjects || '').toLowerCase();
-      const tutorPreferredSubjects = (tutor.preferred_subjects || '').toLowerCase();
+      const tutorSubjects = Array.isArray(tutor.subjects) 
+        ? tutor.subjects.join(',').toLowerCase() 
+        : (tutor.subjects || '').toLowerCase();
+      const tutorPreferredSubjects = Array.isArray(tutor.preferred_subjects) 
+        ? tutor.preferred_subjects.join(',').toLowerCase() 
+        : (tutor.preferred_subjects || '').toLowerCase();
       const requestSubject = request.subject.toLowerCase();
       
       const teachesSubject = tutorSubjects.includes(requestSubject) ||
@@ -1049,7 +1075,21 @@ export function TuitionRequestsSection() {
   // View referring tutor details
   const viewReferringTutorDetails = async (tutorId: string) => {
     try {
-      const response = await fetch(`/api/users/${tutorId}`);
+      // First try tutor service
+      const tutorResponse = await tutorService.getTutorById(tutorId);
+      if (tutorResponse.success) {
+        setSelectedTutorDetails(tutorResponse.data);
+        setShowTutorDetails(true);
+        return;
+      }
+      
+      // Fallback to users API
+      const response = await fetch(`/api/users/${tutorId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
       if (response.ok) {
         const tutorData = await response.json();
         if (tutorData.success) {
@@ -1219,87 +1259,7 @@ export function TuitionRequestsSection() {
         </div>
       </div>
       
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Requests</p>
-                <p className="text-2xl font-bold">{requests.length}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                <BookOpen className="h-4 w-4 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Direct Requests</p>
-                <p className="text-2xl font-bold">{requests.filter(req => !req.submittedFromTutorId).length}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                <User className="h-4 w-4 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Referred Requests</p>
-                <p className="text-2xl font-bold">{requests.filter(req => req.submittedFromTutorId).length}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-                <UserPlus className="h-4 w-4 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Requests</p>
-                <p className="text-2xl font-bold">{requests.filter(req => req.status.toLowerCase() === 'active').length}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
-                <CheckCircle className="h-4 w-4 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Information about referral system */}
-      {requests.filter(req => req.submittedFromTutorId).length > 0 && (
-        <Card className="border-blue-200 bg-blue-50/50">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
-                <UserPlus className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-medium text-blue-900">Tutor Referral System</h3>
-                <p className="text-sm text-blue-700 mt-1">
-                  Some tuition requests are submitted by existing tutors who refer students. These requests are marked with a "Referred" badge in the list. Click "Assign Tutor" to view detailed referring tutor information.
-                </p>
-                <div className="flex items-center gap-4 mt-2 text-xs text-blue-600">
-                  <span>• Referred requests: {requests.filter(req => req.submittedFromTutorId).length}</span>
-                  <span>• Direct requests: {requests.filter(req => !req.submittedFromTutorId).length}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <Card>
         <CardHeader className="pb-3">
@@ -1688,6 +1648,42 @@ export function TuitionRequestsSection() {
                     </div>
                   </div>
                 </div>
+
+                {/* Admin Note Section */}
+                {selectedRequest.adminNote && (
+                  <div className="border-b border-green-200 pb-4">
+                    <h3 className="text-lg font-semibold mb-3 text-green-600">Admin Note</h3>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+                          <AlertCircle className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-blue-900">Administrator Note</h4>
+                          <p className="text-sm text-blue-800 mt-1 whitespace-pre-wrap">{selectedRequest.adminNote}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Update Notice Section */}
+                {selectedRequest.updateNotice && selectedRequest.updateNotice.trim() !== '' && selectedRequest.updateNotice.toLowerCase() !== 'none' && (
+                  <div className="border-b border-green-200 pb-4">
+                    <h3 className="text-lg font-semibold mb-3 text-green-600">Update Notice</h3>
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="h-6 w-6 rounded-full bg-orange-100 flex items-center justify-center mt-0.5">
+                          <AlertCircle className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-orange-900">Administrator Update Notice</h4>
+                          <p className="text-sm text-orange-800 mt-1 whitespace-pre-wrap">{selectedRequest.updateNotice}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* System Information Section */}
                 <div className="border-b border-green-200 pb-4">
@@ -2350,7 +2346,7 @@ export function TuitionRequestsSection() {
 
       {/* Edit Request Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Tuition Request</DialogTitle>
             <DialogDescription>
@@ -2445,6 +2441,31 @@ export function TuitionRequestsSection() {
                       placeholder="Max"
                     />
                   </div>
+                </div>
+                
+                <div className="space-y-2 col-span-1 md:col-span-2">
+                  <Label htmlFor="adminNote">Admin Note</Label>
+                  <Textarea
+                    id="adminNote"
+                    value={editFormData.adminNote || ''}
+                    onChange={(e) => handleEditFormChange('adminNote', e.target.value)}
+                    placeholder="Add admin notes for this tuition request..."
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="space-y-2 col-span-1 md:col-span-2">
+                  <Label htmlFor="updateNotice">Update Notice</Label>
+                  <Textarea
+                    id="updateNotice"
+                    value={editFormData.updateNotice || ''}
+                    onChange={(e) => handleEditFormChange('updateNotice', e.target.value)}
+                    placeholder="Add update notices for this tuition request (admin only)..."
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This notice will only be visible to administrators
+                  </p>
                 </div>
               </div>
             </div>
@@ -2640,8 +2661,15 @@ function TutorCard({ tutor, isSelected, onSelect, onViewDetails, request, isMatc
     let score = 0;
     
     // Subject match (40 points)
-    if ((tutor.subjects?.toLowerCase() || '').includes(request.subject.toLowerCase()) ||
-        (tutor.preferred_subjects?.toLowerCase() || '').includes(request.subject.toLowerCase())) {
+    const tutorSubjects = Array.isArray(tutor.subjects) 
+      ? tutor.subjects.join(',').toLowerCase() 
+      : (tutor.subjects || '').toLowerCase();
+    const tutorPreferredSubjects = Array.isArray(tutor.preferred_subjects) 
+      ? tutor.preferred_subjects.join(',').toLowerCase() 
+      : (tutor.preferred_subjects || '').toLowerCase();
+    
+    if (tutorSubjects.includes(request.subject.toLowerCase()) ||
+        tutorPreferredSubjects.includes(request.subject.toLowerCase())) {
       score += 40;
     }
     

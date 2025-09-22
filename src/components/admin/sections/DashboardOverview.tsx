@@ -7,17 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Calendar, CheckCircle2, CreditCard, Star, Users, 
-  UserCheck, BarChart3, MessageSquare, Megaphone
+  CheckCircle2, UserCheck, MessageSquare
 } from "lucide-react";
 import { RecentTuitionRequests } from "../components/RecentTuitionRequests";
 
 interface DashboardOverviewProps {
-  stats: Array<{
-    title: string;
-    value: string;
-    change: string;
-  }>;
   setActiveTab: (tab: string) => void;
   showAddUserModal?: boolean;
   setShowAddUserModal?: (show: boolean) => void;
@@ -32,7 +26,6 @@ interface DashboardOverviewProps {
 }
 
 export function DashboardOverview({
-  stats,
   setActiveTab,
   showAddUserModal,
   setShowAddUserModal,
@@ -59,25 +52,6 @@ export function DashboardOverview({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <Card key={index} className="border-green-100/60 hover:shadow-md transition-all">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm text-muted-foreground">{stat.title}</CardTitle>
-              {index === 0 ? <Users className="h-4 w-4 text-green-600" /> : 
-               index === 1 ? <CreditCard className="h-4 w-4 text-green-600" /> : 
-               index === 2 ? <Calendar className="h-4 w-4 text-green-600" /> : 
-                <Star className="h-4 w-4 text-green-600" />}
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                <span className={stat.change.startsWith("+") ? "text-green-500" : "text-red-500"}>{stat.change}</span> from last month
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <RecentTuitionRequests />

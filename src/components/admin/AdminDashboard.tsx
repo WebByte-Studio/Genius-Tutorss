@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { DashboardOverview } from "./sections/DashboardOverview";
 import { JobsControlSection } from "./sections/JobsControlSection";
 import { TuitionJobsSection } from "./sections/TuitionJobsSection";
-import { Send, Menu, X, ChevronRight, LogOut, BarChart3, Briefcase, BookCheck, Star, Users, Key, Shield, Settings, UserCheck, BookOpen, History, Tag, Code, Globe, Video, Quote, FileText, DollarSign, User } from "lucide-react";
+import { Send, Menu, X, ChevronRight, LogOut, Briefcase, BookCheck, Star, Users, Key, Shield, Settings, UserCheck, BookOpen, History, Tag, Code, Globe, Video, Quote, FileText, DollarSign, User } from "lucide-react";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardNavbar } from "@/components/layout/DashboardNavbar";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,6 @@ import PermissionAssignment from "./PermissionAssignment";
 
 // Icon mapping for string to component conversion
 const iconMap: { [key: string]: any } = {
-  BarChart3,
   Briefcase,
   BookCheck,
   Star,
@@ -237,7 +236,6 @@ function SimpleMobileSidebar({ activeTab, onTabChange, onLogout, menuItems }: {
 export function AdminDashboard({ user: pageUser }: { user: any }) {
   // Use the user from props or from the hook
   const {
-    stats,
     pendingUsers,
     accounts,
     jobs,
@@ -354,10 +352,6 @@ export function AdminDashboard({ user: pageUser }: { user: any }) {
   const renderDashboard = () => {
     return (
       <DashboardOverview 
-        stats={stats.map(stat => ({
-          ...stat,
-          value: stat.value.toString()
-        }))}
         setActiveTab={setActiveTab}
         showAddUserModal={showAddUserModal}
         setShowAddUserModal={setShowAddUserModal}

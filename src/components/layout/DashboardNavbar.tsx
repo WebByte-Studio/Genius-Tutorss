@@ -77,7 +77,7 @@ export const DashboardNavbar = ({ user, onLogout, onToggleSidebar, showMobileSid
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 flex-shrink-0 group">
             {websiteInfo.siteLogo ? (
-              <div className="w-7 h-7 sm:w-8 sm:h-8 relative">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 xl:w-52 xl:h-52 relative">
                 <Image 
                   src={websiteInfo.siteLogo} 
                   alt={websiteInfo.siteName} 
@@ -86,13 +86,11 @@ export const DashboardNavbar = ({ user, onLogout, onToggleSidebar, showMobileSid
                 />
               </div>
             ) : (
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green-600 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:bg-green-700 group-hover:scale-110 shadow-lg group-hover:shadow-green-500/25">
-                <span className="text-white font-bold text-base sm:text-lg group-hover:text-green-100 transition-colors duration-300">G</span>
+              <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 xl:w-52 xl:h-52 bg-green-600 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-green-700 group-hover:scale-110 shadow-lg group-hover:shadow-green-500/25">
+                <span className="text-white font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl group-hover:text-green-100 transition-colors duration-300">G</span>
               </div>
             )}
-            <span className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-green-600 to-green-500 bg-clip-text text-transparent group-hover:from-green-700 group-hover:to-green-600 transition-all duration-300">
-              {websiteInfo.siteName}
-            </span>
+
           </Link>
 
 
@@ -113,7 +111,7 @@ export const DashboardNavbar = ({ user, onLogout, onToggleSidebar, showMobileSid
               href="/premium-tutors" 
               className="relative text-foreground hover:text-primary transition-all duration-300 group py-1"
             >
-              Premium Tutors
+              Tutor Hub
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300 ease-in-out"></span>
             </Link>
             <Link 
@@ -189,7 +187,7 @@ export const DashboardNavbar = ({ user, onLogout, onToggleSidebar, showMobileSid
               className="block px-3 sm:px-4 py-2.5 sm:py-3 rounded-md text-sm sm:text-base font-medium text-foreground hover:bg-accent hover:text-primary transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Premium Tutors
+              Tutor Hub
             </Link>
             <Link 
               href="/tutor-request" 

@@ -9,11 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/contexts/AuthContext.next'
+import { setAuthToken } from '@/utils/auth'
 import { toast } from 'sonner'
 import { Eye, EyeOff, Mail, Lock, User, Phone, MapPin, Building2, ChevronRight, ChevronLeft } from 'lucide-react'
 import { ForgotPassword } from './ForgotPassword'
+import { EmailVerificationDialog } from './EmailVerificationDialog'
 import { BANGLADESH_DISTRICTS } from '@/data/bangladeshDistricts'
 import tutorDetailsService from '@/services/tutorDetailsService'
+import emailVerificationService from '@/services/emailVerificationService'
 import { useRouter } from 'next/navigation'
 import { API_BASE_URL, API_ENDPOINTS } from '@/config/api'
 
@@ -136,7 +139,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
       setDefaultTab('signup')
     }
   }, [children])
-  const { signIn, signUp, redirectToDashboard, user } = useAuth()
+  const { signIn, signUp, redirectToDashboard, user, setUser, setProfile } = useAuth()
 
   const [loginForm, setLoginForm] = useState({
     phone: '',
@@ -202,6 +205,11 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
   
   // State for tutor registration dialog
   const [showTutorRegistration, setShowTutorRegistration] = useState(false)
+  
+  // Email verification state
+  const [showEmailVerification, setShowEmailVerification] = useState(false)
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('')
+  const [pendingVerificationName, setPendingVerificationName] = useState('')
 
   // Helper functions for tutor registration
   const handleTutorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,6 +266,149 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
       ...prev,
       educationalQualifications: prev.educationalQualifications.filter(qual => qual.id !== id)
     }));
+  };
+
+  // Handle email verification success
+  const handleEmailVerificationSuccess = async (verificationData?: { user: any; token: string }) => {
+    try {
+      console.log('Email verification success, verification data:', verificationData);
+      
+      if (verificationData?.user && verificationData?.token) {
+        // Set the auth token
+        setAuthToken(verificationData.token);
+        localStorage.setItem('authToken', verificationData.token);
+        
+        // Set the user in context
+        setUser(verificationData.user);
+        setProfile(verificationData.user);
+        localStorage.setItem('user', JSON.stringify(verificationData.user));
+        
+        console.log('User and token set in context after email verification');
+        
+        // Wait a moment for state to update, then redirect
+        setTimeout(() => {
+          // Check if this is a tutor registration
+          if (signupForm.role === 'tutor' || tutorFormData.fullName) {
+            console.log('Continuing with tutor details submission...');
+            // Continue with tutor details submission after email verification
+            handleTutorDetailsSubmission();
+          } else {
+            console.log('Student registration complete, redirecting...');
+            // For students, show success and redirect
+            toast.success('Account created successfully! Email verified!')
+            setOpen(false)
+            
+            // Redirect to dashboard
+            redirectToDashboard(verificationData.user);
+          }
+        }, 100);
+      } else {
+        console.error('No user data or token available for redirection');
+        toast.error('Failed to complete registration - missing user data');
+      }
+    } catch (error: any) {
+      console.error('Error after email verification:', error);
+      toast.error(error.message || 'Failed to complete registration');
+    }
+  };
+
+  // Extract tutor details submission logic
+  const handleTutorDetailsSubmission = async () => {
+    // Get the user from context (already created and verified)
+    const createdUser = user;
+    if (!createdUser?.id) {
+      throw new Error('Tutor registration completed but user ID not available');
+    }
+
+    // Add a small delay to ensure token is properly set
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Format the data for tutor details API
+    const tutorData = {
+      user_id: createdUser.id,
+      district: tutorFormData.presentLocation, // Map presentLocation to district
+      location: tutorFormData.presentLocation, // Map presentLocation to location
+      tutoringStyles: tutorFormData.preferredTutoringStyles,
+      experience: tutorFormData.tutoringExperience,
+      placeOfLearning: tutorFormData.placeOfLearning,
+      extraFacilities: tutorFormData.extraFacilities,
+      preferredMedium: tutorFormData.preferredMedium,
+      preferredClasses: tutorFormData.preferredClass,
+      preferredSubjects: tutorFormData.preferredSubjects.split(',').map(subject => subject.trim()),
+      preferredTime: tutorFormData.preferredTime,
+      preferredStudentGender: tutorFormData.preferredStudentGender,
+      alternativePhone: tutorFormData.alternativePhone,
+      universityDetails: {
+        name: tutorFormData.universityName,
+        department: tutorFormData.departmentName,
+        year: tutorFormData.universityYear
+      },
+      religion: tutorFormData.religion,
+      nationality: tutorFormData.nationality,
+      socialMediaLinks: tutorFormData.socialMediaLinks ? { links: tutorFormData.socialMediaLinks } : undefined,
+      preferredTutoringCategory: tutorFormData.preferredTutoringCategory,
+      presentLocation: tutorFormData.presentLocation,
+      educationalQualifications: tutorFormData.educationalQualifications,
+      qualification: tutorFormData.qualification,
+      expectedSalary: tutorFormData.expectedSalary,
+      availabilityStatus: tutorFormData.availabilityStatus,
+      daysPerWeek: parseInt(tutorFormData.daysPerWeek || '0')
+    };
+    
+    // Debug: Log the data being sent
+    console.log('Tutor data being sent:', JSON.stringify(tutorData, null, 2));
+    
+    // Validate required fields before sending
+    const requiredFields = [
+      'qualification', 'expectedSalary', 'tutoringExperience', 
+      'placeOfLearning', 'extraFacilities', 'universityName', 
+      'departmentName', 'presentLocation'
+    ];
+    
+    const missingFields = requiredFields.filter(field => {
+      let value;
+      if (field === 'tutoringExperience') {
+        value = tutorFormData.tutoringExperience;
+      } else if (field === 'universityName') {
+        value = tutorFormData.universityName;
+      } else if (field === 'departmentName') {
+        value = tutorFormData.departmentName;
+      } else if (field === 'placeOfLearning') {
+        value = tutorFormData.placeOfLearning;
+      } else if (field === 'extraFacilities') {
+        value = tutorFormData.extraFacilities;
+      } else if (field === 'presentLocation') {
+        value = tutorFormData.presentLocation;
+      } else {
+        value = tutorFormData[field as keyof typeof tutorFormData];
+      }
+      return !value || (Array.isArray(value) && value.length === 0);
+    });
+    
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+    }
+    
+    // Submit tutor details using the service
+    const response = await tutorDetailsService.submitTutorDetails(tutorData);
+    
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to register tutor details');
+    }
+     
+    toast.success('Tutor account created successfully! Welcome to TutorConnect!');
+    
+    // Reset form data
+    resetTutorFormData();
+    
+    // User is already set in context from email verification
+    // Just redirect to tutor dashboard
+    setTimeout(() => {
+      // Use AuthContext's redirection function to redirect to tutor dashboard
+      redirectToDashboard(createdUser);
+      setOpen(false);
+      setCurrentStep(1);
+    }, 100);
   };
   
   // Navigation functions for multi-step process
@@ -369,123 +520,30 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
         throw new Error('Missing required fields for user registration');
       }
 
-      // Validate email format if provided
-      if (tutorFormData.email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(tutorFormData.email)) {
-          throw new Error('Please enter a valid email address');
-        }
-        
-        // Check if email already exists
-        const emailExists = await checkEmailExists(tutorFormData.email);
-        if (emailExists) {
-          throw new Error('An account with this email already exists. Please use a different email or try logging in.');
-        }
-      }
-
-      // First create the user account using the regular signUp function from AuthContext
-      // This will set the user in the context but we'll handle redirection manually after tutor details
-      await signUp(tutorFormData.phone, tutorFormData.password, {
-        full_name: tutorFormData.fullName,
-        phone: tutorFormData.phone,
-        role: 'tutor',
-        email: tutorFormData.email,
-        gender: tutorFormData.gender,
-        location: tutorFormData.presentLocation,
-        status: 'active'
-      });
-
-      // Get the created user from the context
-      const createdUser = user;
-      if (!createdUser?.id) {
-        throw new Error('User registration completed but user ID not available');
-      }
-
-      // Add a small delay to ensure token is properly set
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Format the data for tutor details API
-      const tutorData = {
-        user_id: createdUser.id,
-        district: tutorFormData.presentLocation, // Map presentLocation to district
-        location: tutorFormData.presentLocation, // Map presentLocation to location
-        tutoringStyles: tutorFormData.preferredTutoringStyles,
-        experience: tutorFormData.tutoringExperience,
-        placeOfLearning: tutorFormData.placeOfLearning,
-        extraFacilities: tutorFormData.extraFacilities,
-        preferredMedium: tutorFormData.preferredMedium,
-        preferredClasses: tutorFormData.preferredClass,
-        preferredSubjects: tutorFormData.preferredSubjects.split(',').map(subject => subject.trim()),
-        preferredTime: tutorFormData.preferredTime,
-        preferredStudentGender: tutorFormData.preferredStudentGender,
-        alternativePhone: tutorFormData.alternativePhone,
-        universityDetails: {
-          name: tutorFormData.universityName,
-          department: tutorFormData.departmentName,
-          year: tutorFormData.universityYear
-        },
-        religion: tutorFormData.religion,
-        nationality: tutorFormData.nationality,
-        socialMediaLinks: tutorFormData.socialMediaLinks ? { links: tutorFormData.socialMediaLinks } : undefined,
-        preferredTutoringCategory: tutorFormData.preferredTutoringCategory,
-        presentLocation: tutorFormData.presentLocation,
-        educationalQualifications: tutorFormData.educationalQualifications,
-        qualification: tutorFormData.qualification,
-        expectedSalary: tutorFormData.expectedSalary,
-        availabilityStatus: tutorFormData.availabilityStatus,
-        daysPerWeek: parseInt(tutorFormData.daysPerWeek || '0')
-      };
-      
-      // Debug: Log the data being sent
-      console.log('Tutor data being sent:', JSON.stringify(tutorData, null, 2));
-      
-      // Validate required fields before sending
-      const requiredFields = [
-        'qualification', 'expectedSalary', 'tutoringExperience', 
-        'placeOfLearning', 'extraFacilities', 'universityName', 
-        'departmentName', 'presentLocation'
-      ];
-      
-      const missingFields = requiredFields.filter(field => {
-        let value;
-        if (field === 'tutoringExperience') {
-          value = tutorFormData.tutoringExperience;
-        } else if (field === 'universityName') {
-          value = tutorFormData.universityName;
-        } else if (field === 'departmentName') {
-          value = tutorFormData.departmentName;
-        } else if (field === 'placeOfLearning') {
-          value = tutorFormData.placeOfLearning;
-        } else if (field === 'extraFacilities') {
-          value = tutorFormData.extraFacilities;
-        } else if (field === 'presentLocation') {
-          value = tutorFormData.presentLocation;
-        } else {
-          value = tutorFormData[field as keyof typeof tutorFormData];
-        }
-        return !value || (Array.isArray(value) && value.length === 0);
-      });
-      
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(tutorFormData.email)) {
+        throw new Error('Please enter a valid email address');
       }
       
-      // Submit tutor details using the service
-      const response = await tutorDetailsService.submitTutorDetails(tutorData);
-      
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to register tutor details');
+      // Check if email already exists
+      const emailExists = await checkEmailExists(tutorFormData.email);
+      if (emailExists) {
+        throw new Error('An account with this email already exists. Please use a different email or try logging in.');
       }
-       
-      toast.success('Tutor account created successfully! Welcome to TutorConnect!');
+
+      // Since email is required, always send OTP first before creating account
+      console.log('Sending OTP for tutor email verification before account creation...');
+      await emailVerificationService.sendOTP(tutorFormData.email, tutorFormData.fullName);
       
-      // Reset form data
-      resetTutorFormData();
-      
-      // Use AuthContext's redirection function to redirect to tutor dashboard
-      redirectToDashboard(user);
-      setOpen(false);
-      setCurrentStep(1);
+      // Show email verification dialog
+      console.log('Setting email verification dialog state for tutor...');
+      setPendingVerificationEmail(tutorFormData.email);
+      setPendingVerificationName(tutorFormData.fullName);
+      setShowEmailVerification(true);
+      console.log('Email verification dialog should now be visible for tutor');
+      setLoading(false);
+      return; // Don't proceed until email is verified
     } catch (error: any) {
       console.error('Error in tutor registration:', error);
       toast.error(error.message || 'Registration failed');
@@ -519,7 +577,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!signupForm.phone || !signupForm.password || !signupForm.fullName) {
+    if (!signupForm.phone || !signupForm.password || !signupForm.fullName || !signupForm.gender || !signupForm.email) {
       toast.error('Please fill in all required fields')
       return
     }
@@ -536,27 +594,41 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
     
     // Additional validation for tutor-specific fields
     if (signupForm.role === 'tutor') {
-      if (!signupForm.gender || !signupForm.location) {
-        toast.error('Please fill in all required tutor fields (gender and location)')
+      if (!signupForm.location) {
+        toast.error('Please fill in all required tutor fields (location)')
         return
       }
     }
 
+    // Validate email format (now required)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(signupForm.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
     setLoading(true)
     try {
-      await signUp(signupForm.phone, signupForm.password, {
-        full_name: signupForm.fullName,
-        phone: signupForm.phone,
-        role: signupForm.role,
-        location: signupForm.location,
-        email: signupForm.email,
-        gender: signupForm.gender,
-        status: 'active'
-      })
-      toast.success('Account created successfully!')
-      setOpen(false)
-      // Redirect is now handled automatically in AuthContext
+      // Check if email already exists
+      const emailExists = await checkEmailExists(signupForm.email);
+      if (emailExists) {
+        throw new Error('An account with this email already exists. Please use a different email or try logging in.');
+      }
+
+      // Since email is required, always send OTP first before creating account
+      console.log('Sending OTP for email verification before account creation...');
+      await emailVerificationService.sendOTP(signupForm.email, signupForm.fullName);
+      
+      // Show email verification dialog
+      console.log('Setting email verification dialog state...');
+      setPendingVerificationEmail(signupForm.email);
+      setPendingVerificationName(signupForm.fullName);
+      setShowEmailVerification(true);
+      console.log('Email verification dialog should now be visible');
+      setLoading(false);
+      return; // Don't proceed until email is verified
     } catch (error: any) {
+      console.error('Error in student registration:', error);
       toast.error(error.message || 'Signup failed')
     } finally {
       setLoading(false)
@@ -618,7 +690,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
   // Render step 1: Basic Information for tutor registration
   const renderTutorStep1 = () => (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-green-800 mb-4">Basic Information</h2>
+      <h2 className="text-xl font-semibold text-green-800 mb-4">Personal Information</h2>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Full Name */}
@@ -652,7 +724,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
             <SelectContent>
               <SelectItem value="male">Male</SelectItem>
               <SelectItem value="female">Female</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+              
             </SelectContent>
           </Select>
         </div>
@@ -1254,7 +1326,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
           <SelectContent>
             <SelectItem value="male">Male</SelectItem>
             <SelectItem value="female">Female</SelectItem>
-            <SelectItem value="any">Any</SelectItem>
+            
           </SelectContent>
         </Select>
       </div>
@@ -1439,6 +1511,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
                     <User className="absolute left-3 top-3 h-4 w-4 text-green-600" />
                     <Input
                       id="fullName"
+                      name="fullName"
                       type="text"
                       placeholder="Enter your full name"
                       className="pl-10 h-11 bg-white/80 border-green-200 focus:border-green-500 focus:ring-green-500/20 rounded-xl text-sm transition-all duration-300 backdrop-blur-sm"
@@ -1456,6 +1529,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-green-600" />
                     <Input
                       id="phone"
+                      name="phone"
                       type="tel"
                       placeholder="Enter your phone number"
                       className="pl-10 h-11 bg-white/80 border-green-200 focus:border-green-500 focus:ring-green-500/20 rounded-xl text-sm transition-all duration-300 backdrop-blur-sm"
@@ -1468,18 +1542,38 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
 
                 {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="signupEmail" className="text-sm font-semibold text-green-800">Email</Label>
+                  <Label htmlFor="signupEmail" className="text-sm font-semibold text-green-800">Email *</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-green-600" />
                     <Input
                       id="signupEmail"
+                      name="email"
                       type="email"
                       placeholder="Enter your email address"
                       className="pl-10 h-11 bg-white/80 border-green-200 focus:border-green-500 focus:ring-green-500/20 rounded-xl text-sm transition-all duration-300 backdrop-blur-sm"
                       value={signupForm.email}
                       onChange={(e) => setSignupForm(prev => ({ ...prev, email: e.target.value }))}
+                      required
                     />
                   </div>
+                </div>
+
+                {/* Gender - Required for all users */}
+                <div className="space-y-2">
+                  <Label htmlFor="studentGender" className="text-sm font-semibold text-green-800">Gender *</Label>
+                  <Select 
+                    value={signupForm.gender} 
+                    onValueChange={(value: any) => setSignupForm(prev => ({ ...prev, gender: value }))}
+                  >
+                    <SelectTrigger className="h-11 bg-white/80 border-green-200 focus:border-green-500 focus:ring-green-500/20 rounded-xl text-sm transition-all duration-300 backdrop-blur-sm">
+                      <SelectValue placeholder="Select your gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -1530,6 +1624,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-green-600" />
                     <Input
                       id="signupPassword"
+                      name="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Create a password"
                       className="pl-10 h-11 bg-white/80 border-green-200 focus:border-green-500 focus:ring-green-500/20 rounded-xl text-sm transition-all duration-300 backdrop-blur-sm"
@@ -1544,6 +1639,7 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
                   <Label htmlFor="confirmPassword" className="text-sm font-semibold text-green-800">Confirm Password *</Label>
                   <Input
                     id="confirmPassword"
+                    name="confirmPassword"
                     type={showPassword ? "text" : "password"}
                     placeholder="Confirm your password"
                     className="h-11 bg-white/80 border-green-200 focus:border-green-500 focus:ring-green-500/20 rounded-xl text-sm transition-all duration-300 backdrop-blur-sm"
@@ -1566,6 +1662,15 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ children, defaultRole 
           </TabsContent>
         </Tabs>
       </DialogContent>
+      
+      {/* Email Verification Dialog */}
+      <EmailVerificationDialog
+        open={showEmailVerification}
+        onOpenChange={setShowEmailVerification}
+        email={pendingVerificationEmail}
+        fullName={pendingVerificationName}
+        onVerificationSuccess={handleEmailVerificationSuccess}
+      />
     </Dialog>
   )
 }
